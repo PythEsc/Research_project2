@@ -25,6 +25,10 @@ import java.util.logging.Logger;
  */
 public class DataConverter
 {
+  public static long tescoCount = 0;
+  public static long sainsburyCount = 0;
+  public static long alltescoCount = 0;
+  public static long allsainsburyCount = 0;
   public static final String PREFIX_TESCO = "TE_";
   public static final String PREFIX_SAINSBURY = "SA_";
   public static final String[] IGNORE_LIST =
@@ -71,7 +75,9 @@ public class DataConverter
           killerCounter += convertFolder(listFile, outputFolderSainsbury);
         }
       }
-      System.out.println("Sainsbury: killed "+ killerCounter+" posts.");
+      System.out.println("Sainsbury: old size " + allsainsburyCount + " posts.");
+      System.out.println("Sainsbury: survived " + killerCounter + " posts.");
+      System.out.println("Sainsbury: removed " + sainsburyCount + " posts.");
     };
 
     Runnable runnableTesco = () ->
@@ -95,7 +101,9 @@ public class DataConverter
           killerCounter += convertFolder(listFile, outputFolderTesco);
         }
       }
-      System.out.println("Teso: killed "+ killerCounter+" posts.");
+      System.out.println("Teso: old size " + alltescoCount + " posts.");
+      System.out.println("Teso: survived " + killerCounter + " posts.");
+      System.out.println("Teso: removed " + tescoCount + " posts.");
     };
     Thread sains = new Thread(runnableSains);
     Thread tesc = new Thread(runnableTesco);
@@ -138,7 +146,8 @@ public class DataConverter
     File fullstats = new File(outputFolder + "/" + file.getName()
         + "/fullstats.csv");
 
-    checkValidIdsAndWriteLinesFullstats(fullStatsFile, fullstats, mapFullstatsIds);
+    checkValidIdsAndWriteLinesFullstats(fullStatsFile, fullstats,
+        mapFullstatsIds, outputFolder);
     writeLinesComments(outputFolder, file, commentFile, mapFullstatsIds);
     return mapFullstatsIds.size();
   }
@@ -185,8 +194,9 @@ public class DataConverter
     }
   }
 
-  private static void checkValidIdsAndWriteLinesFullstats(File fullStatsFile, File fullstats,
-      ArrayList<String> mapFullstatsIds)
+  private static void checkValidIdsAndWriteLinesFullstats(File fullStatsFile,
+      File fullstats,
+      ArrayList<String> mapFullstatsIds, String outputFolder)
   {
     try
     {
@@ -206,6 +216,14 @@ public class DataConverter
           }
           else if(firstLineFound)
           {
+            if(outputFolder.equals(outputFolderSainsbury))
+            {
+              allsainsburyCount++;
+            }
+            else
+            {
+              alltescoCount++;
+            }
             String[] split = nextLine.split("\t");
             String text = split[4];
             if(text.trim().length() > 20
@@ -218,6 +236,18 @@ public class DataConverter
               if(!listToAdd.isEmpty())
               {
                 writeLine(fullstatsFw, listToAdd);
+
+              }
+            }
+            else
+            {
+              if(outputFolder.equals(outputFolderSainsbury))
+              {
+                sainsburyCount++;
+              }
+              else
+              {
+                tescoCount++;
               }
             }
           }
