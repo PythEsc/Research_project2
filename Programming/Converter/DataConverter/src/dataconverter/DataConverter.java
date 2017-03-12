@@ -50,56 +50,48 @@ public class DataConverter
   public static void main(String[] args)
   {
 
-    Runnable runnableSains = new Runnable()
+    Runnable runnableSains = () ->
     {
-      public void run()
+      String sainsburyPath = "Sainsbury_s";
+      File sainsbury = new File(sainsburyPath);
+      File outputSainsbury = new File(outputFolderSainsbury);
+      if(!outputSainsbury.exists())
       {
-        String sainsburyPath = "Sainsbury_s";
-        File sainsbury = new File(sainsburyPath);
-        File outputSainsbury = new File(outputFolderSainsbury);
-        if(!outputSainsbury.exists())
+        outputSainsbury.mkdir();
+      }
+      File[] listFiles = sainsbury.listFiles();
+      for(File listFile : listFiles)
+      {
+        String name = listFile.getName();
+        if(name.startsWith(PREFIX_SAINSBURY)
+            && !name.endsWith(IGNORE_LIST[0])
+            && !name.endsWith(IGNORE_LIST[1]))
         {
-          outputSainsbury.mkdir();
-        }
-        File[] listFiles = sainsbury.listFiles();
-        for(File listFile : listFiles)
-        {
-          String name = listFile.getName();
-          if(name.startsWith(PREFIX_SAINSBURY)
-              && !name.endsWith(IGNORE_LIST[0])
-              && !name.endsWith(IGNORE_LIST[1]))
-          {
-            convertFolder(listFile, outputFolderSainsbury);
-          }
+          convertFolder(listFile, outputFolderSainsbury);
         }
       }
-
     };
 
-    Runnable runnableTesco = new Runnable()
+    Runnable runnableTesco = () ->
     {
-      public void run()
+      String tescozipPath = "Tesco";
+      File tesco = new File(tescozipPath);
+      File outputTesco = new File(outputFolderTesco);
+      if(!outputTesco.exists())
       {
-        String tescozipPath = "Tesco";
-        File tesco = new File(tescozipPath);
-        File outputTesco = new File(outputFolderTesco);
-        if(!outputTesco.exists())
+        outputTesco.mkdir();
+      }
+      File[] listFiles = tesco.listFiles();
+      for(File listFile : listFiles)
+      {
+        String name = listFile.getName();
+        if(name.startsWith(PREFIX_TESCO)
+            && !name.endsWith(IGNORE_LIST[0])
+            && !name.endsWith(IGNORE_LIST[1]))
         {
-          outputTesco.mkdir();
-        }
-        File[] listFiles = tesco.listFiles();
-        for(File listFile : listFiles)
-        {
-          String name = listFile.getName();
-          if(name.startsWith(PREFIX_TESCO)
-              && !name.endsWith(IGNORE_LIST[0])
-              && !name.endsWith(IGNORE_LIST[1]))
-          {
-            convertFolder(listFile, outputFolderTesco);
-          }
+          convertFolder(listFile, outputFolderTesco);
         }
       }
-
     };
     Thread sains = new Thread(runnableSains);
     Thread tesc = new Thread(runnableTesco);
@@ -111,12 +103,11 @@ public class DataConverter
   }
 
   /**
-   * TODO: USE OTHER KEY FOR THE MAPS; THIS OVERWRITES THINGS
+   *
    *
    * @param file
    * @param outputFolder
    */
-
   public static void convertFolder(File file, String outputFolder)
   {
     ArrayList<String> mapFullstatsIds = new ArrayList<>();
@@ -142,51 +133,15 @@ public class DataConverter
     //Compute
     File fullstats = new File(outputFolder + "/" + file.getName()
         + "/fullstats.csv");
-    try
-    {
-      try(Scanner sc = new Scanner(fullStatsFile, "UTF-8"))
-      {
-        Writer fullstatsFw = new BufferedWriter(new OutputStreamWriter(
-            new FileOutputStream(fullstats), "UTF-8"));
-        sc.useLocale(new Locale("gb"));
-        boolean firstLineFound = false;
-        while(sc.hasNextLine())
-        {
-          String nextLine = sc.nextLine();
-          if(!firstLineFound
-              && nextLine.equals(firstLine_fullstats))
-          {
-            firstLineFound = true;
-          }
-          else if(firstLineFound)
-          {
-            if(nextLine.contains(";"))
-            {
-              continue;
-            }
-            String[] split = nextLine.split("\t");
-            String text = split[4];
-            if(text.trim().length() > 20
-                && split[5].trim().isEmpty())
-            {
-              ArrayList<String> listToAdd = new ArrayList<>();
-              listToAdd.addAll(Arrays.asList(split));
-              mapFullstatsIds.add(split[2]);
-              if(!listToAdd.isEmpty())
-              {
-                writeLine(fullstatsFw, listToAdd);
-              }
-            }
-          }
-        }
-      }
-    }
-    catch(IOException ex)
-    {
-      Logger.getLogger(DataConverter.class.getName()).
-          log(Level.SEVERE, null, ex);
-    }
 
+    checkValidIdsAndWriteLinesFullstats(fullStatsFile, fullstats, mapFullstatsIds);
+    writeLinesComments(outputFolder, file, commentFile, mapFullstatsIds);
+
+  }
+
+  private static void writeLinesComments(String outputFolder, File file,
+      File commentFile, ArrayList<String> mapFullstatsIds)
+  {
     try
     {
       File comments = new File(outputFolder + "/" + file.getName()
@@ -208,9 +163,9 @@ public class DataConverter
           else if(firstLineFound)
           {
             String[] split = nextLine.split("\t");
+            String id = split[1];
             ArrayList<String> listToAdd = new ArrayList<>();
             listToAdd.addAll(Arrays.asList(split));
-            String id = split[1];
             if(mapFullstatsIds.contains(id) && !listToAdd.isEmpty())
             {
               writeLine(commentsFW, listToAdd);
@@ -224,7 +179,52 @@ public class DataConverter
       Logger.getLogger(DataConverter.class.getName()).
           log(Level.SEVERE, null, ex);
     }
+  }
 
+  private static void checkValidIdsAndWriteLinesFullstats(File fullStatsFile, File fullstats,
+      ArrayList<String> mapFullstatsIds)
+  {
+    try
+    {
+      try(Scanner sc = new Scanner(fullStatsFile, "UTF-8"))
+      {
+        Writer fullstatsFw = new BufferedWriter(new OutputStreamWriter(
+            new FileOutputStream(fullstats), "UTF-8"));
+        sc.useLocale(new Locale("gb"));
+        boolean firstLineFound = false;
+        while(sc.hasNextLine())
+        {
+          String nextLine = sc.nextLine();
+          if(!firstLineFound
+              && nextLine.equals(firstLine_fullstats))
+          {
+            firstLineFound = true;
+          }
+          else if(firstLineFound)
+          {
+            String[] split = nextLine.split("\t");
+            String text = split[4];
+            if(text.trim().length() > 20
+                && split[5].trim().isEmpty())
+            {
+              String id = split[2];
+              mapFullstatsIds.add(id);
+              ArrayList<String> listToAdd = new ArrayList<>();
+              listToAdd.addAll(Arrays.asList(split));
+              if(!listToAdd.isEmpty())
+              {
+                writeLine(fullstatsFw, listToAdd);
+              }
+            }
+          }
+        }
+      }
+    }
+    catch(IOException ex)
+    {
+      Logger.getLogger(DataConverter.class.getName()).
+          log(Level.SEVERE, null, ex);
+    }
   }
 
   public static void writeLine(Writer w, List<String> values) throws IOException
@@ -239,6 +239,10 @@ public class DataConverter
     if(result.contains("\""))
     {
       result = result.replace("\"", "\"\"");
+    }
+    if(result.contains(";"))
+    {
+      result = "\"" + result + "\"";
     }
     return result;
 
