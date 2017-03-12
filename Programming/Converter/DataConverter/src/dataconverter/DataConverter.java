@@ -52,6 +52,7 @@ public class DataConverter
 
     Runnable runnableSains = () ->
     {
+      int killerCounter = 0;
       String sainsburyPath = "Sainsbury_s";
       File sainsbury = new File(sainsburyPath);
       File outputSainsbury = new File(outputFolderSainsbury);
@@ -67,13 +68,15 @@ public class DataConverter
             && !name.endsWith(IGNORE_LIST[0])
             && !name.endsWith(IGNORE_LIST[1]))
         {
-          convertFolder(listFile, outputFolderSainsbury);
+          killerCounter += convertFolder(listFile, outputFolderSainsbury);
         }
       }
+      System.out.println("Sainsbury: killed "+ killerCounter+" posts.");
     };
 
     Runnable runnableTesco = () ->
     {
+      int killerCounter = 0;
       String tescozipPath = "Tesco";
       File tesco = new File(tescozipPath);
       File outputTesco = new File(outputFolderTesco);
@@ -89,9 +92,10 @@ public class DataConverter
             && !name.endsWith(IGNORE_LIST[0])
             && !name.endsWith(IGNORE_LIST[1]))
         {
-          convertFolder(listFile, outputFolderTesco);
+          killerCounter += convertFolder(listFile, outputFolderTesco);
         }
       }
+      System.out.println("Teso: killed "+ killerCounter+" posts.");
     };
     Thread sains = new Thread(runnableSains);
     Thread tesc = new Thread(runnableTesco);
@@ -108,7 +112,7 @@ public class DataConverter
    * @param file
    * @param outputFolder
    */
-  public static void convertFolder(File file, String outputFolder)
+  public static int convertFolder(File file, String outputFolder)
   {
     ArrayList<String> mapFullstatsIds = new ArrayList<>();
     File commentFile = null;
@@ -136,7 +140,7 @@ public class DataConverter
 
     checkValidIdsAndWriteLinesFullstats(fullStatsFile, fullstats, mapFullstatsIds);
     writeLinesComments(outputFolder, file, commentFile, mapFullstatsIds);
-
+    return mapFullstatsIds.size();
   }
 
   private static void writeLinesComments(String outputFolder, File file,
