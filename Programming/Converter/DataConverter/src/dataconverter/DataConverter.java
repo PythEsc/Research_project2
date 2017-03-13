@@ -3,19 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package dataconverter;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Scanner;
+import java.io.*;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,7 +52,13 @@ public class DataConverter
       File outputSainsbury = new File(outputFolderSainsbury);
       if(!outputSainsbury.exists())
       {
-        outputSainsbury.mkdir();
+        outputSainsbury.mkdirs();
+      }
+      if(!outputSainsbury.exists()){
+        throw new IllegalStateException("Mkdirs failed for path: "+outputSainsbury.getAbsolutePath());
+      }
+      if(!outputSainsbury.canWrite()){
+        throw new IllegalStateException("You do not have the needed write permissions for: "+outputSainsbury.getAbsolutePath());
       }
       File[] listFiles = sainsbury.listFiles();
       for(File listFile : listFiles)
@@ -88,7 +84,13 @@ public class DataConverter
       File outputTesco = new File(outputFolderTesco);
       if(!outputTesco.exists())
       {
-        outputTesco.mkdir();
+        outputTesco.mkdirs();
+      }
+      if(!outputTesco.exists()){
+        throw new IllegalStateException("Mkdirs failed for path: "+outputTesco.getAbsolutePath());
+      }
+      if(!outputTesco.canWrite()){
+        throw new IllegalStateException("You do not have the needed write permissions for: "+outputTesco.getAbsolutePath());
       }
       File[] listFiles = tesco.listFiles();
       for(File listFile : listFiles)
