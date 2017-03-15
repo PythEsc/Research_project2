@@ -54,11 +54,16 @@ public class DataConverter
       {
         outputSainsbury.mkdirs();
       }
-      if(!outputSainsbury.exists()){
-        throw new IllegalStateException("Mkdirs failed for path: "+outputSainsbury.getAbsolutePath());
+      if(!outputSainsbury.exists())
+      {
+        throw new IllegalStateException("Mkdirs failed for path: "
+            + outputSainsbury.getAbsolutePath());
       }
-      if(!outputSainsbury.canWrite()){
-        throw new IllegalStateException("You do not have the needed write permissions for: "+outputSainsbury.getAbsolutePath());
+      if(!outputSainsbury.canWrite())
+      {
+        throw new IllegalStateException(
+            "You do not have the needed write permissions for: "
+            + outputSainsbury.getAbsolutePath());
       }
       File[] listFiles = sainsbury.listFiles();
       for(File listFile : listFiles)
@@ -86,11 +91,16 @@ public class DataConverter
       {
         outputTesco.mkdirs();
       }
-      if(!outputTesco.exists()){
-        throw new IllegalStateException("Mkdirs failed for path: "+outputTesco.getAbsolutePath());
+      if(!outputTesco.exists())
+      {
+        throw new IllegalStateException("Mkdirs failed for path: "
+            + outputTesco.getAbsolutePath());
       }
-      if(!outputTesco.canWrite()){
-        throw new IllegalStateException("You do not have the needed write permissions for: "+outputTesco.getAbsolutePath());
+      if(!outputTesco.canWrite())
+      {
+        throw new IllegalStateException(
+            "You do not have the needed write permissions for: " + outputTesco.
+            getAbsolutePath());
       }
       File[] listFiles = tesco.listFiles();
       for(File listFile : listFiles)
@@ -103,9 +113,9 @@ public class DataConverter
           killerCounter += convertFolder(listFile, outputFolderTesco);
         }
       }
-      System.out.println("Teso: old size " + alltescoCount + " posts.");
-      System.out.println("Teso: survived " + killerCounter + " posts.");
-      System.out.println("Teso: removed " + tescoCount + " posts.");
+      System.out.println("Tesco: old size " + alltescoCount + " posts.");
+      System.out.println("Tesco: survived " + killerCounter + " posts.");
+      System.out.println("Tesco: removed " + tescoCount + " posts.");
     };
     Thread sains = new Thread(runnableSains);
     Thread tesc = new Thread(runnableTesco);
@@ -117,10 +127,13 @@ public class DataConverter
   }
 
   /**
+   * Converts a comments and fullstats file of the facebook data from .tab file
+   * to .csv file with ";" as delimitters and filters its content.
    *
+   * @param file The current folder
+   * @param outputFolder The outputfolder of Tesco or Sainsbury
    *
-   * @param file
-   * @param outputFolder
+   * @return
    */
   public static int convertFolder(File file, String outputFolder)
   {
@@ -187,6 +200,7 @@ public class DataConverter
             }
           }
         }
+        commentsFW.close();
       }
     }
     catch(IOException ex)
@@ -254,6 +268,7 @@ public class DataConverter
             }
           }
         }
+        fullstatsFw.close();
       }
     }
     catch(IOException ex)
