@@ -7,7 +7,6 @@ import re
 
 
 class DataImporter:
-
     def __init__(self, file_location, unzip_location):
         self.file_location = file_location
         self.unzip_location = unzip_location
@@ -30,18 +29,18 @@ class DataImporter:
             raise ValueError(
                 "The specified unzip path is no directory. Unzip path: " + os.path.abspath(self.unzip_location))
 
-        print("Trying to extract zip file (" + os.path.abspath(self.file_location) + ")")
+        print("---------- Start extracting zip file ----------")
+        print("\t File: " + os.path.abspath(self.file_location))
 
         input_data = zipfile.ZipFile(self.file_location)
         input_data.extractall(self.unzip_location)
         input_data.close()
+        print("\t Unzipped into: " + os.path.abspath(self.unzip_location))
+        print("---------- Finished extracting zip file ----------\n")
 
-        print("Data successfully unzipped into " + os.path.abspath(self.unzip_location))
-
-    def __load_data(self, criteria):
+    def __load_data(self):
         filenames = glob.glob(self.unzip_location + "/**/*.csv", recursive=True)
-        print("Found the following *.csv files: " + str(filenames))
-        print("Start parsing...")
+        print("---------- Start parsing files ----------")
 
         for file in filenames:
             try:
@@ -71,21 +70,8 @@ class DataImporter:
                 print("Error parsing file: " + file)
 
                 raise
+        print("---------- Finished parsing files ----------\n")
 
-    def load(self, criteria):
+    def load(self):
         self.__unzip_file()
-        self.__load_data(criteria)
-
-
-# ----------- Some small test -------------
-
-importer_sainsbury = DataImporter("../Filtered/Sainsbury.zip",
-                                  "../Unzipped/Sainsbury")
-importer_tesco = DataImporter("../Filtered/Tesco.zip",
-                              "../Unzipped/Tesco")
-
-# TODO: Add the function to filter for some criteria (e.g. only specific columns)
-importer_sainsbury.load("put the criteria in here (not yet implemented)")
-importer_tesco.load("put the criteria in here (not yet implemented)")
-
-# Do anything with the data
+        self.__load_data()
