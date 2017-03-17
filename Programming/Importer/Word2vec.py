@@ -106,20 +106,21 @@ def clean_str(string):
     return string.strip('\'"').strip()
 
 
-def plot_with_labels(low_dim_embs, labels, filename='tsne.png'):
-  assert low_dim_embs.shape[0] >= len(labels), "More labels than embeddings"
-  plt.figure(figsize=(18, 18))  # in inches
-  for i, label in enumerate(labels):
-    x, y = low_dim_embs[i, :]
-    plt.scatter(x, y)
-    plt.annotate(label,
-                 xy=(x, y),
-                 xytext=(5, 2),
-                 textcoords='offset points',
-                 ha='right',
-                 va='bottom')
+def plot_with_labels(low_dim_embs, labels, filename='../Model/dataset.png'):
+    assert low_dim_embs.shape[0] >= len(labels), "More labels than embeddings"
+    plt.figure(figsize=(25, 25))  # in inches
+    for i, label in enumerate(labels):
+        x, y = low_dim_embs[i, :]
+        plt.scatter(x, y)
+        plt.annotate(label,
+                     xy=(x, y),
+                     xytext=(5, 2),
+                     textcoords='offset points',
+                     ha='right',
+                     va='bottom')
 
-  plt.savefig(filename)
+    plt.savefig(filename)
+
 
 # Create our DataImporter for the Sainsbury data set
 importer_sainsbury = DataImporter("../Filtered/Sainsbury.zip",
@@ -180,19 +181,23 @@ if os.path.exists("../Model/dataset.p"):
         print("\n---------- File successfully loaded ----------")
         print("\tLoaded variables: w, word_idx_map, vocab")
 
-    # try:
-    #     print("---------- Start plotting data ----------")
-    #     tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
-    #     plot_only = 500
-    #     low_dim_embs = tsne.fit_transform(w[:plot_only, :])
-    #
-    #     labels = []
-    #     for vec in w[:plot_only]:
-    #         print()
-    #     labels = [idx_word_map[i] for i in w[:plot_only]]
-    #     plot_with_labels(low_dim_embs, labels)
-    #     print("---------- Finished plotting data ----------")
-    # except ImportError:
-    #     print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
-    #     raise
+    try:
+        print("---------- Start plotting data ----------")
+        # Use t-distributed stochastic neighbor embedding for displaying the data
+        tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
 
+        # The number of words you want to add to the graph
+        plot_only = 500
+        # Loading data into graph
+        low_dim_embs = tsne.fit_transform(w[1:plot_only, :])
+
+        # Create labels for the added words
+        labels = np.empty(plot_only - 1, dtype=object)
+        for i in range(1, plot_only):
+            labels[i - 1] = idx_word_map[i]
+
+        plot_with_labels(low_dim_embs, labels, filename="../Model/sainsbury.png")
+        print("---------- Finished plotting data ----------")
+    except ImportError:
+        print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
+        raise
