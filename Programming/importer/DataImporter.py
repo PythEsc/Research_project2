@@ -1,16 +1,38 @@
-import zipfile
-import glob
-import pandas as pd
 import errno
+import glob
+import logging
 import os
+import pandas as pd
 import re
+import zipfile
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+logger = logging.getLogger("DataImporter")
 
 
 class DataImporter:
+    """
+    A helper class that loads the facebook data sets into memory and provides an iterator yielding one comment after another.
+    """
+
     def __init__(self, file_location, unzip_location):
+        """
+
+        :param file_location: The location of the zip-file containing the data
+        :param unzip_location: The directory in which the zip shall be extracted
+        """
         self.file_location = file_location
         self.unzip_location = unzip_location
         self.data_storage = {}
+
+    def iterate(self, filter):
+        for _, dataMap in self.data_storage.items():
+            for comment_structure in dataMap["comments"]:
+                comment = comment_structure[8]
+                if not isinstance(comment, str):
+                    continue
+
+                yield filter(comment)
 
     def __unzip_file(self):
         # Check the file_location
@@ -29,22 +51,17 @@ class DataImporter:
             raise ValueError(
                 "The specified unzip path is no directory. Unzip path: " + os.path.abspath(self.unzip_location))
 
-        print("---------- Start extracting zip file ----------")
-        print("\t File: " + os.path.abspath(self.file_location))
-
-        input_data = zipfile.ZipFile(self.file_location)
-        input_data.extractall(self.unzip_location)
-        input_data.close()
-        print("\t Unzipped into: " + os.path.abspath(self.unzip_location))
-        print("---------- Finished extracting zip file ----------\n")
+        logger.info("Extracting zip file into "+os.path.abspath(self.unzip_location))
+        with zipfile.ZipFile(self.file_location) as input_data:
+            input_data.extractall(self.unzip_location)
 
     def __load_data(self):
         filenames = glob.glob(self.unzip_location + "/**/*.csv", recursive=True)
-        print("---------- Start parsing files ----------")
+        logger.debug("Parsing files: "+str(filenames))
 
         for file in filenames:
             try:
-                print("\t" + file)
+                logger.info("Parsing file: "+file)
                 data = pd.read_csv(file, delimiter=';').as_matrix()
 
                 filename_formatted = file.replace("\\", "/")
@@ -67,11 +84,14 @@ class DataImporter:
                 else:
                     raise ValueError("File does not match the needed pattern: " + filename_formatted)
             except:
-                print("Error parsing file: " + file)
+                logger.error("Error parsing file: " + file)
 
                 raise
-        print("---------- Finished parsing files ----------\n")
+        logger.info("Finished parsing files")
 
     def load(self):
+        """
+        Loads the data into memory
+        """
         self.__unzip_file()
         self.__load_data()

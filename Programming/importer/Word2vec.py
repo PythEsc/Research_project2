@@ -3,10 +3,10 @@ import nltk
 import numpy as np
 import os
 import pickle
-import re
 import string as stringlib
 from collections import defaultdict
-from Programming.Importer.DataImporter import DataImporter
+from Programming.importer.DataImporter import DataImporter
+from Programming.importer.word2vec_utitlity import clean_str
 from sklearn.manifold import TSNE
 
 
@@ -67,44 +67,6 @@ def get_w(word_vecs, k=300):
 
         i += 1
     return w, word_idx_map, idx_word_map
-
-
-def clean_str(string):
-    string = string.lower()
-    string = re.sub(r"[^A-Za-z0-9(),!?\'`]", " ", string)
-    # Instead of using those lines we are replacing every "'" with " " such that words like "I'm" -> "I m" and get
-    # removed by the latest filter which removes words with length <= 2
-
-    # string = re.sub(r"'s", " 's", string)
-    # string = re.sub(r"'ve", " 've", string)
-    # string = re.sub(r"n't", " n't", string)
-    # string = re.sub(r"'re", " 're", string)
-    # string = re.sub(r"'d", " 'd", string)
-    # string = re.sub(r"'ll", " 'll", string)
-
-    string = re.sub(r"'", " ", string)
-    string = re.sub(r",", " , ", string)
-    string = re.sub(r"!", " ! ", string)
-    string = re.sub(r"\(", " ( ", string)
-    string = re.sub(r"\)", " ) ", string)
-    string = re.sub(r"\?", " ? ", string)
-    # Convert www.* or https?://* to __URL__
-    string = re.sub('((www\.[^\s]+)|(https?://[^\s]+))', '__URL__', string)
-    # Convert @username to __AT_USER__
-    string = re.sub('@[^\s]+', '__AT_USER__', string)
-    # Remove additional white spaces
-    string = re.sub('[\s]+', ' ', string)
-    # Replace #word with word
-    string = re.sub(r'#([^\s]+)', r'\1', string)
-    # Replace 3 or more repetitions of character with the character itself
-    string = re.sub(r'(.)\1{2,}', r'\1', string)
-    # Remove words with 2 or less characters
-    string = re.sub(r'\b\w{1,2}\b', '', string)
-    # Remove sequences that contain numbers
-    string = re.sub(r'\b\w*\d\w*\b', '', string)
-    # trim
-    return string.strip('\'"').strip()
-
 
 def plot_with_labels(low_dim_embs, labels, filename='../Model/dataset.png'):
     assert low_dim_embs.shape[0] >= len(labels), "More labels than embeddings"
