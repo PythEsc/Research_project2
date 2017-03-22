@@ -43,9 +43,11 @@ else:
     lines = LineIterator(dirname="../training/processed")
     model.train(lines)
 
+    os.makedirs(os.path.dirname(data_set_name), exist_ok=True)
     model.save(data_set_name)
 
 log_dir = "../tensorboard/"
+os.makedirs(os.path.dirname(log_dir), exist_ok=True)
 
 # project part of vocab, 10K of 300 dimension
 w2v_10K = np.zeros((1000, 300))
@@ -78,4 +80,4 @@ writer = tf.summary.FileWriter(log_dir)
 projector.visualize_embeddings(writer, config)
 
 # open tensorboard with logdir, check localhost:6006 for viewing your embedding.
-# tensorboard --logdir="./projector/"
+# tensorboard --logdir="../tensorboard/"
