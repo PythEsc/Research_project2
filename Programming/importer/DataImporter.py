@@ -15,6 +15,17 @@ class DataImporter:
     A helper class that loads the facebook data sets into memory and provides an iterator yielding one comment after another.
     """
 
+    CONST_FULLSTATS = "fullstats"
+    CONST_COMMENTS = "comments"
+    CONST_INDEX_POST = 4
+    CONST_INDEX_LIKE = 22
+    CONST_INDEX_LOVE = 23
+    CONST_INDEX_WOW = 24
+    CONST_INDEX_HAHA = 25
+    CONST_INDEX_SAD = 26
+    CONST_INDEX_ANGRY = 27
+    CONST_INDEX_REACT = [CONST_INDEX_LIKE, CONST_INDEX_LOVE, CONST_INDEX_WOW, CONST_INDEX_HAHA, CONST_INDEX_SAD, CONST_INDEX_ANGRY]
+
     def __init__(self, file_location, unzip_location):
         """
 
@@ -95,3 +106,20 @@ class DataImporter:
         """
         self.__unzip_file()
         self.__load_data()
+
+    def get_data_and_labels(self):
+
+        y = []
+        x_text = []
+        for _, data in self.data_storage.items():
+            fullstats = data[self.CONST_FULLSTATS]
+            former_post = ""
+            for post_struct in fullstats:
+                post = post_struct[self.CONST_INDEX_POST]
+                if post is former_post:
+                    continue
+                former_post = post
+                x_text.append(post)
+                y.append([post_struct[react] for react in self.CONST_INDEX_REACT])
+
+        return [x_text, y]
