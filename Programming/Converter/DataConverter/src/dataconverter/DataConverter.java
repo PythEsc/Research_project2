@@ -11,13 +11,20 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 
 /**
  *
@@ -279,8 +286,9 @@ public class DataConverter {
 	 * @param origin
 	 * @param trainingFile
 	 * @param validationFile
+	 * @throws IOException
 	 */
-	private void createValidationSet(int dataSize, File origin, File trainingFile, File validationFile) {
+	private void createValidationSet(int dataSize, File origin, File trainingFile, File validationFile) throws IOException {
 
 		// First we divide the data into 10 buckets in order to assure posts are selected from the entire time range.
 		int stepSize = (int) VALIDATION_FACTOR * dataSize;
@@ -299,8 +307,24 @@ public class DataConverter {
 			selected.add(index);
 		}
 
+		// Assure the list is sorted
+		Collections.sort(selected);
+
 		// After selecting all the indexes retrieve the associated tweets and store them separately;
 
+		int curIndex = 0;
+
+		CSVParser parser = CSVParser.parse(origin, Charset.forName("UTF-8"), CSVFormat.newFormat(';'));
+
+		Iterator<CSVRecord> csvIterator = parser.iterator();
+
+		while (csvIterator.hasNext()) {
+			CSVRecord record = csvIterator.next();
+
+
+			// TODO: Find out in which column the data is stored.
+
+		}
 	}
 
 }
