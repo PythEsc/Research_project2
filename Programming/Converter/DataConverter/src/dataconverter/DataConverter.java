@@ -314,13 +314,17 @@ public class DataConverter {
 
 		int curIndex = 0;
 
-		CSVParser parser = CSVParser.parse(origin, Charset.forName("UTF-8"), CSVFormat.newFormat(';'));
+		CSVFormat csvFormat = CSVFormat	.newFormat('\n')
+										.withRecordSeparator(';');
 
+		CSVParser parser = CSVParser.parse(origin, Charset.forName("UTF-8"), csvFormat);
+		Iterator<Integer> selIt = selected.iterator();
 		Iterator<CSVRecord> csvIterator = parser.iterator();
 
 		while (csvIterator.hasNext()) {
 			CSVRecord record = csvIterator.next();
 
+			int nextValidationIndex = selIt.next();
 
 			// TODO: Find out in which column the data is stored.
 
