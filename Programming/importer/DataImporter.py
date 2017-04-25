@@ -2,9 +2,13 @@ import errno
 import glob
 import logging
 import os
+
+import math
 import pandas as pd
 import re
 import zipfile
+
+import Programming.importer.word2vec_utitlity as util
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 logger = logging.getLogger("DataImporter")
@@ -123,3 +127,23 @@ class DataImporter:
                 y.append([post_struct[react] for react in self.CONST_INDEX_REACT])
 
         return [x_text, y]
+
+    def prepare_data_for_CNN(self):
+        [posts, reactions_matrix] = self.get_data_and_labels()
+        stopwords = util.get_stopwords()
+
+        [cleaned_posts, new_reactions_matrix] = [[], []]
+
+        for i, post in enumerate(posts):
+            reactions = reactions_matrix[i]
+            reaction_sum = sum(reactions)
+            if math.isnan(reaction_sum) or reaction_sum < 1:
+                continue
+
+            new_reactions = []
+            for reaction in reactions:
+                new_reactions.append(reaction / reaction_sum)
+
+            cleaned_posts.append(post)
+            new_reactions_matrix.append(new_reactions)
+        return [cleaned_posts, new_reactions_matrix]
