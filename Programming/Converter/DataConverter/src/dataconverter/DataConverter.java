@@ -38,6 +38,8 @@ public class DataConverter {
 	public static final String POSTFIX_FILE_FULLSTAT = "fullstats.tab";
 	private static final char DEFAULT_SEPARATOR = ';';
 
+	/** The ratio of the validation set. */
+	public static final float VALIDATION_FACTOR = 0.1f;
 	private static String outputFolderTesco = "Data/Tesco";
 	private static String outputFolderSainsbury = "Data/Sainsbury";
 
@@ -101,6 +103,7 @@ public class DataConverter {
 			System.out.println("Tesco: survived " + killerCounter + " posts.");
 			System.out.println("Tesco: removed " + tescoCount + " posts.");
 		};
+
 		Thread sains = new Thread(runnableSains);
 		Thread tesc = new Thread(runnableTesco);
 
@@ -112,7 +115,7 @@ public class DataConverter {
 
 	/**
 	 * Converts a comments and fullstats file of the facebook data from .tab file
-	 * to .csv file with ";" as delimitters and filters its content.
+	 * to .csv file with ";" as separators and filters its content.
 	 *
 	 * @param file
 	 *            The current folder
@@ -266,6 +269,37 @@ public class DataConverter {
 		}
 		sb.append("\n");
 		w.append(sb.toString());
+
+	}
+
+	/**
+	 * Divides the dataset into a validation set and a training set.
+	 * 
+	 * @param dataSize
+	 * @param origin
+	 * @param trainingFile
+	 * @param validationFile
+	 */
+	private void createValidationSet(int dataSize, File origin, File trainingFile, File validationFile) {
+
+		// First we divide the data into 10 buckets in order to assure posts are selected from the entire time range.
+		int stepSize = (int) VALIDATION_FACTOR * dataSize;
+
+		ArrayList<Integer> selected = new ArrayList<>();
+
+		// Select the posts
+		for (int i = 0; i + stepSize <= dataSize; i += stepSize) {
+
+			// Compute a random offset
+			int index = i + ((int) (i + Math.random() * stepSize));
+
+			// Assert that we don't go out of bounds.
+			assert index < dataSize - 1 : "The validationset creator went out of bounds.";
+
+			selected.add(index);
+		}
+
+		// After selecting all the indexes retrieve the associated tweets and store them separately;
 
 	}
 
