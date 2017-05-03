@@ -5,7 +5,7 @@ class LineIterator:
     """
     A class that iterates over each file in a directory row per row
     """
-    def __init__(self, dirname="../training/processed"):
+    def __init__(self, dirname="../../../data/training/processed"):
         """
         :param dirname: The directory name that contains the input files
         """

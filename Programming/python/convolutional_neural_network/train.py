@@ -1,19 +1,19 @@
 #! /usr/bin/env python
 
-import tensorflow as tf
-import numpy as np
+import datetime
 import os
 import time
-import datetime
+
+import numpy as np
+import tensorflow as tf
+# Data loading params
 from tensorflow.contrib import learn
 
+from convolutional_neural_network import data_helpers
+from convolutional_neural_network.text_cnn import TextCNN
 # Parameters
 # ==================================================
-
-# Data loading params
-from Programming.ConvolutionalNeuralNetwork import data_helpers
-from Programming.ConvolutionalNeuralNetwork.text_cnn import TextCNN
-from Programming.importer.DataImporter import DataImporter
+from importer.data_importer import DataImporter
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
@@ -43,14 +43,13 @@ for attr, value in sorted(FLAGS.__flags.items()):
     print("{}={}".format(attr.upper(), value))
 print("")
 
-
 # Data Preparation
 # ==================================================
 
 # Load data
 print("Loading data...")
-#x_text, y = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
-importer_sainsbury = DataImporter("../Filtered/Sainsbury.zip", "../Unzipped/Sainsbury")
+# x_text, y = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
+importer_sainsbury = DataImporter("../../../data/Filtered/Sainsbury.zip", "../../../data/Unzipped/Sainsbury")
 importer_sainsbury.load()
 x_text, y = importer_sainsbury.prepare_data_for_CNN()
 
@@ -76,14 +75,13 @@ y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
 print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
-
 # Training
 # ==================================================
 
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
-      allow_soft_placement=FLAGS.allow_soft_placement,
-      log_device_placement=FLAGS.log_device_placement)
+        allow_soft_placement=FLAGS.allow_soft_placement,
+        log_device_placement=FLAGS.log_device_placement)
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         cnn = TextCNN(
@@ -143,14 +141,15 @@ with tf.Graph().as_default():
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
 
+
         def train_step(x_batch, y_batch):
             """
             A single training step
             """
             feed_dict = {
-              cnn.input_x: x_batch,
-              cnn.input_y: y_batch,
-              cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
+                cnn.input_x: x_batch,
+                cnn.input_y: y_batch,
+                cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
             _, step, summaries, loss, accuracy = sess.run(
                 [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
@@ -159,14 +158,15 @@ with tf.Graph().as_default():
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
+
         def dev_step(x_batch, y_batch, writer=None):
             """
             Evaluates model on a dev set
             """
             feed_dict = {
-              cnn.input_x: x_batch,
-              cnn.input_y: y_batch,
-              cnn.dropout_keep_prob: 1.0
+                cnn.input_x: x_batch,
+                cnn.input_y: y_batch,
+                cnn.dropout_keep_prob: 1.0
             }
             step, summaries, loss, accuracy = sess.run(
                 [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
@@ -175,6 +175,7 @@ with tf.Graph().as_default():
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             if writer:
                 writer.add_summary(summaries, step)
+
 
         # Generate batches
         batches = data_helpers.batch_iter(

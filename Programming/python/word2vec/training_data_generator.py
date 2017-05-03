@@ -1,7 +1,9 @@
-from wikipedia import page
-import Programming.importer.word2vec_utitlity as util
 import logging
 import os
+
+from wikipedia import page
+
+import word2vec.word2vec_utitlity as util
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 logger = logging.getLogger("TrainingDataImporter")

@@ -1,14 +1,14 @@
 import errno
 import glob
 import logging
-import os
-
 import math
-import pandas as pd
+import os
 import re
 import zipfile
 
-import Programming.importer.word2vec_utitlity as util
+import pandas as pd
+
+import word2vec.word2vec_utitlity as util
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 logger = logging.getLogger("DataImporter")
@@ -66,17 +66,17 @@ class DataImporter:
             raise ValueError(
                 "The specified unzip path is no directory. Unzip path: " + os.path.abspath(self.unzip_location))
 
-        logger.info("Extracting zip file into "+os.path.abspath(self.unzip_location))
+        logger.info("Extracting zip file into " + os.path.abspath(self.unzip_location))
         with zipfile.ZipFile(self.file_location) as input_data:
             input_data.extractall(self.unzip_location)
 
     def __load_data(self):
         filenames = glob.glob(self.unzip_location + "/**/*.csv", recursive=True)
-        logger.debug("Parsing files: "+str(filenames))
+        logger.debug("Parsing files: " + str(filenames))
 
         for file in filenames:
             try:
-                logger.info("Parsing file: "+file)
+                logger.info("Parsing file: " + file)
                 data = pd.read_csv(file, delimiter=';').as_matrix()
 
                 filename_formatted = file.replace("\\", "/")
@@ -130,7 +130,6 @@ class DataImporter:
 
     def prepare_data_for_CNN(self):
         [posts, reactions_matrix] = self.get_data_and_labels()
-        stopwords = util.get_stopwords()
 
         [cleaned_posts, new_reactions_matrix] = [[], []]
 

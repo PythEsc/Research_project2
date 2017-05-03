@@ -4,7 +4,7 @@ import time
 import traceback
 
 # configure logging
-from data_retrieval.facebook.facebook_parser import FacebookParser
+from importer.data_retrieval import FacebookParser
 
 FORMAT = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)

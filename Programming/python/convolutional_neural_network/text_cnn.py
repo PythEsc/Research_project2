@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 
 
 class TextCNN(object):
@@ -7,10 +6,10 @@ class TextCNN(object):
     A CNN for text classification.
     Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
     """
-    def __init__(
-      self, sequence_length, num_classes, vocab_size,
-      embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
 
+    def __init__(
+            self, sequence_length, num_classes, vocab_size,
+            embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
         # Placeholders for input, output and dropout
         self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
         self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
@@ -70,7 +69,7 @@ class TextCNN(object):
             b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
-            self.scores = tf.nn.softmax(tf.matmul(self.h_drop, W) + b,name="scores")
+            self.scores = tf.nn.softmax(tf.matmul(self.h_drop, W) + b, name="scores")
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
@@ -79,5 +78,5 @@ class TextCNN(object):
 
         # Accuracy
         with tf.name_scope("accuracy"):
-            correct_predictions = tf.equal(tf.argmax(self.scores,1), tf.argmax(self.input_y, 1))
+            correct_predictions = tf.equal(self.scores, self.input_y)
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
