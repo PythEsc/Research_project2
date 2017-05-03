@@ -19,7 +19,7 @@ tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity
 
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_string("checkpoint_dir", "runs/1493147345/checkpoints/", "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir", "runs/1493552599/checkpoints/", "Checkpoint directory from training run")
 tf.flags.DEFINE_boolean("eval_train", False, "Evaluate on all training data")
 
 # Misc Parameters
@@ -36,15 +36,25 @@ print("")
 
 # CHANGE THIS: Load data. Load your own data here
 from importer.DataImporter import DataImporter
-importer_sainsbury = DataImporter("../Filtered/Sainsbury.zip", "../Unzipped/Sainsbury")
+importer_sainsbury = DataImporter("../Filtered/Tesco.zip", "../Unzipped/Tesco")
 importer_sainsbury.load()
 x_text, y = importer_sainsbury.prepare_data_for_CNN()
 #if FLAGS.eval_train:
     #x_raw, y_test = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
     #y_test = np.argmax(y_test, axis=1)
 #else:
-x_raw = x_text
-y_test = y
+shuffle_indices = np.random.permutation(np.arange(len(y)))
+x_shuffled = np.copy(x_text)
+y_shuffled = np.copy(y)
+for i in range(len(shuffle_indices)):
+    value = y[shuffle_indices[i]]
+    y_shuffled[i] = value
+
+    value = x_text[shuffle_indices[i]]
+    x_shuffled[i] = value
+    
+x_raw = x_shuffled[:20]
+y_test = y_shuffled[:20]
 
 # Map data into vocabulary
 vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "vocab")
@@ -52,6 +62,9 @@ vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
 x_test = np.array(list(vocab_processor.transform(x_raw)))
 
 print("\nEvaluating...\n")
+
+# Evaluation
+# ==================================================
 
 # Evaluation
 # ==================================================
@@ -73,7 +86,7 @@ with graph.as_default():
         dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
         # Tensors we want to evaluate
-        predictions = graph.get_operation_by_name("output/predictions").outputs
+        predictions = graph.get_operation_by_name("output/scores").outputs[0]
 
         # Generate batches for one epoch
         batches = data_helpers.batch_iter(list(x_test), FLAGS.batch_size, 1, shuffle=False)
@@ -82,14 +95,11 @@ with graph.as_default():
         all_predictions = []
 
         for x_test_batch in batches:
-            batch_predictions = sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 1.0})
-            all_predictions = np.concatenate([all_predictions, batch_predictions])
-
-# Print accuracy if y_test is defined
-#if y_test is not None:
-    #correct_predictions = float(sum(all_predictions == y_test))
-    #print("Total number of test examples: {}".format(len(y_test)))
-    #print("Accuracy: {:g}".format(correct_predictions/float(len(y_test))))
+            batch_predictions = sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 0.1})
+            if(len(all_predictions) == 0):
+                all_predictions = batch_predictions
+            else:
+                all_predictions = np.vstack([all_predictions, batch_predictions])
 
 # Save the evaluation to a csv
 predictions_human_readable = np.column_stack((np.array(x_raw), all_predictions))
