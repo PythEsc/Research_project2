@@ -46,14 +46,14 @@ public class DataConverter {
 	public static final String PREFIX_SAINSBURY = "SA_";
 	public static final String[] IGNORE_LIST = { "January", "February" };
 	public static final String PREFIX_FILE = "page";
-	public static final String POSTFIX_FILE_COMMENT = "comments.tab";
-	public static final String POSTFIX_FILE_FULLSTAT = "fullstats.tab";
+	public static final String POSTFIX_FILE_COMMENT = "comments";
+	public static final String POSTFIX_FILE_FULLSTAT = "fullstats";
 	private static final char DEFAULT_SEPARATOR = ';';
 
 	/** The ratio of the validation set. */
 	public static final float VALIDATION_FACTOR = 0.1f;
-	private static String outputFolderTesco = "Data" + File.separator + "Tesco";
-	private static String outputFolderSainsbury = "Data" + File.separator + "Sainsbury";
+	private static String outputFolderTesco = "Output" + File.separator + "Tesco";
+	private static String outputFolderSainsbury = "Output" + File.separator + "Sainsbury";
 
 	private static String firstLine_comments = "position	post_id	post_by	post_text	post_published	comment_id	comment_by	is_reply	comment_message	comment_published	comment_like_count";
 	private static String firstLine_fullstats = "type	by	post_id	post_link	post_message	picture	full_picture	link	link_domain	post_published	post_published_unix	post_published_sql	likes_count_fb	comments_count_fb	reactions_count_fb	shares_count_fb	engagement_fb	comments_retrieved	comments_base	comments_replies	comment_likes_count	rea_NONE	rea_LIKE	rea_LOVE	rea_WOW	rea_HAHA	rea_SAD	rea_ANGRY	rea_THANKFUL";
@@ -159,20 +159,22 @@ public class DataConverter {
 		File fullStatsFile = null;
 		for (File listFile : file.listFiles()) {
 			if (listFile.getName()
-						.endsWith(POSTFIX_FILE_COMMENT)) {
+						.endsWith(POSTFIX_FILE_COMMENT + ".tab") || listFile.getName()
+																			.endsWith(POSTFIX_FILE_COMMENT + ".csv")) {
 				commentFile = listFile;
 			} else if (listFile	.getName()
-								.endsWith(POSTFIX_FILE_FULLSTAT)) {
+								.endsWith(POSTFIX_FILE_FULLSTAT + ".tab") || listFile	.getName()
+																						.endsWith(POSTFIX_FILE_FULLSTAT + ".csv")) {
 				fullStatsFile = listFile;
 			}
 		}
 
-		File parent = new File(outputFolder + "/" + file.getName());
+		File parent = new File(outputFolder + File.separator + file.getName());
 		if (!parent.exists()) {
 			parent.mkdir();
 		}
 		// Compute
-		File fullstats = new File(outputFolder + "/" + file.getName() + "/fullstats.csv");
+		File fullstats = new File(outputFolder + File.separator + file.getName() + "/fullstats.csv");
 
 		checkValidIdsAndWriteLinesFullstats(fullStatsFile, fullstats, mapFullstatsIds, outputFolder);
 		writeLinesComments(outputFolder, file, commentFile, mapFullstatsIds);
