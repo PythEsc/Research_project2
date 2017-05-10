@@ -20,5 +20,19 @@
 
 	</build>
 	<dependencies>
+	<!--  COllections Utilities -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>com.springsource.org.apache.commons.collections</artifactId>
+			<version>3.2.1</version>
+		</dependency>
+		
+		<!--  CSV Utilities -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.4</version>
+		</dependency>
+
 	</dependencies>
 </project>

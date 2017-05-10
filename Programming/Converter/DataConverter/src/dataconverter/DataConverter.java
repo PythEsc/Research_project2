@@ -8,6 +8,7 @@ package dataconverter;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -15,6 +16,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -24,6 +26,7 @@ import java.util.logging.Logger;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 
 /**
@@ -36,6 +39,8 @@ public class DataConverter {
 	public static long tescoCount = 0;
 	public static long sainsburyCount = 0;
 	public static long alltescoCount = 0;
+	public static HashMap<File, Integer> resultCountTesco = new HashMap<>();
+	public static HashMap<File, Integer> resultCountSainsbury = new HashMap<>();
 	public static long allsainsburyCount = 0;
 	public static final String PREFIX_TESCO = "TE_";
 	public static final String PREFIX_SAINSBURY = "SA_";
@@ -47,8 +52,8 @@ public class DataConverter {
 
 	/** The ratio of the validation set. */
 	public static final float VALIDATION_FACTOR = 0.1f;
-	private static String outputFolderTesco = "Data/Tesco";
-	private static String outputFolderSainsbury = "Data/Sainsbury";
+	private static String outputFolderTesco = "Data" + File.separator + "Tesco";
+	private static String outputFolderSainsbury = "Data" + File.separator + "Sainsbury";
 
 	private static String firstLine_comments = "position	post_id	post_by	post_text	post_published	comment_id	comment_by	is_reply	comment_message	comment_published	comment_like_count";
 	private static String firstLine_fullstats = "type	by	post_id	post_link	post_message	picture	full_picture	link	link_domain	post_published	post_published_unix	post_published_sql	likes_count_fb	comments_count_fb	reactions_count_fb	shares_count_fb	engagement_fb	comments_retrieved	comments_base	comments_replies	comment_likes_count	rea_NONE	rea_LIKE	rea_LOVE	rea_WOW	rea_HAHA	rea_SAD	rea_ANGRY	rea_THANKFUL";
@@ -109,6 +114,22 @@ public class DataConverter {
 			System.out.println("Tesco: old size " + alltescoCount + " posts.");
 			System.out.println("Tesco: survived " + killerCounter + " posts.");
 			System.out.println("Tesco: removed " + tescoCount + " posts.");
+
+			System.out.println("[TESCO] Selecting validation and training sets...");
+			File trainFile = new File(outputTesco + File.separator + "training.txt");
+			File valFile = new File(outputTesco + File.separator + "validation.txt");
+			boolean errors = false;
+			for (File f : outputTesco.listFiles()) {
+				try {
+					DataConverter.createValidationSet(resultCountTesco.get(f), f, trainFile, valFile);
+				} catch (IOException e) {
+					errors = true;
+					e.printStackTrace();
+				}
+			}
+
+			if (errors)
+				System.err.println("One or more errors Occurred.");
 		};
 
 		Thread sains = new Thread(runnableSains);
@@ -288,7 +309,7 @@ public class DataConverter {
 	 * @param validationFile
 	 * @throws IOException
 	 */
-	private void createValidationSet(int dataSize, File origin, File trainingFile, File validationFile) throws IOException {
+	private static void createValidationSet(int dataSize, File origin, File trainingFile, File validationFile) throws IOException {
 
 		// First we divide the data into 10 buckets in order to assure posts are selected from the entire time range.
 		int stepSize = (int) VALIDATION_FACTOR * dataSize;
@@ -310,25 +331,38 @@ public class DataConverter {
 		// Assure the list is sorted
 		Collections.sort(selected);
 
-		// After selecting all the indexes retrieve the associated tweets and store them separately;
-
-		int curIndex = 0;
-
 		CSVFormat csvFormat = CSVFormat	.newFormat('\n')
 										.withRecordSeparator(';');
 
 		CSVParser parser = CSVParser.parse(origin, Charset.forName("UTF-8"), csvFormat);
+		// Create appending file writer to collect multiple files into a single file.
+		FileWriter valWriter = new FileWriter(validationFile, true), trainWriter = new FileWriter(trainingFile, true);
+		CSVPrinter valPrinter = new CSVPrinter(valWriter, csvFormat), trainPrinter = new CSVPrinter(trainWriter, csvFormat);
 		Iterator<Integer> selIt = selected.iterator();
 		Iterator<CSVRecord> csvIterator = parser.iterator();
 
-		while (csvIterator.hasNext()) {
-			CSVRecord record = csvIterator.next();
+		int curLine = 0;
+		while (selIt.hasNext()) {
 
+			// The next index that is to be moved to the validation index.
 			int nextValidationIndex = selIt.next();
 
-			// TODO: Find out in which column the data is stored.
+			while (csvIterator.hasNext()) {
+				CSVRecord rec = csvIterator.next();
+				if (curLine == nextValidationIndex) {
+					// Print the record in the validation set
+					valPrinter.printRecord(rec);
+				} else {
+					// Print the data in the training set
+					trainPrinter.printRecord(rec);
+				}
+
+			}
+
 
 		}
+		valPrinter.close();
+		trainPrinter.close();
 	}
 
 }
