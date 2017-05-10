@@ -33,7 +33,7 @@ import org.apache.commons.csv.CSVRecord;
  *
  * @author Tobi
  * @Author Pieter Schaap - p_je@hotmail.com
- *         Added Training and validation Separation.
+ *         Added Training and validation set creation.
  */
 public class DataConverter {
 	public static long tescoCount = 0;
@@ -66,7 +66,7 @@ public class DataConverter {
 
 		Runnable runnableSains = () -> {
 			int killerCounter = 0;
-			String sainsburyPath = "Sainsbury_s";
+			String sainsburyPath = "Data" + File.separator + "Sainsbury";
 			File sainsbury = new File(sainsburyPath);
 			File outputSainsbury = new File(outputFolderSainsbury);
 			if (!outputSainsbury.exists()) {
@@ -79,6 +79,7 @@ public class DataConverter {
 				throw new IllegalStateException("You do not have the needed write permissions for: " + outputSainsbury.getAbsolutePath());
 			}
 			File[] listFiles = sainsbury.listFiles();
+			System.out.println(sainsbury.getAbsolutePath());
 			for (File listFile : listFiles) {
 				String name = listFile.getName();
 				if (name.startsWith(PREFIX_SAINSBURY) && !name.endsWith(IGNORE_LIST[0]) && !name.endsWith(IGNORE_LIST[1])) {
@@ -92,7 +93,7 @@ public class DataConverter {
 
 		Runnable runnableTesco = () -> {
 			int killerCounter = 0;
-			String tescozipPath = "Tesco";
+			String tescozipPath = "Data" + File.separator + "Tesco";
 			File tesco = new File(tescozipPath);
 			File outputTesco = new File(outputFolderTesco);
 			if (!outputTesco.exists()) {
@@ -358,7 +359,6 @@ public class DataConverter {
 				}
 
 			}
-
 
 		}
 		valPrinter.close();
