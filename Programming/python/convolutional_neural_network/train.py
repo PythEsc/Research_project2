@@ -9,7 +9,8 @@ import tensorflow as tf
 # Data loading params
 from tensorflow.contrib import learn
 
-from python.convolutional_neural_network import TextCNN, data_helpers
+from python.convolutional_neural_network import data_helpers
+from python.convolutional_neural_network.text_cnn import TextCNN
 from python.importer.data_importer import DataImporter
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
