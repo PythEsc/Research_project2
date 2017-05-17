@@ -4,14 +4,32 @@ import time
 import traceback
 
 # configure logging
-from importer.data_retrieval import FacebookParser
+from importer.data_retrieval.facebook.facebook_parser import FacebookParser
+from importer.database.data_types import Post, Comment
+from importer.database.mongodb import MongodbStorage
 
 FORMAT = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 ONE_DAY = 60 * 60 * 24
 AUTH_TOKEN = '1279401372135473|e1948b86d049d7d171db22b5dc0eb9a7'
-SUPERMARKET = ['walmart']
+SUPERMARKET = ['AldiUK', 'walmart', 'tesco', 'sainsburys']
+
+
+def __store_post(db_storage, post):
+    db_storage.insert_post(Post.create_from_single_values(post[FacebookParser.CONST_ID],
+                                                          post[FacebookParser.CONST_FROM]['id'],
+                                                          post[FacebookParser.CONST_MESSAGE],
+                                                          post[FacebookParser.CONST_DATE],
+                                                          post[FacebookParser.CONST_PERMALINK],
+                                                          post[FacebookParser.CONST_REACTIONS]))
+
+    for comment in post[FacebookParser.CONST_COMMENTS]:
+        db_storage.insert_comment(Comment.create_from_single_values(comment[FacebookParser.CONST_ID],
+                                                                    post[FacebookParser.CONST_ID],
+                                                                    comment[FacebookParser.CONST_FROM]['id'],
+                                                                    comment[FacebookParser.CONST_MESSAGE],
+                                                                    comment[FacebookParser.CONST_DATE]))
 
 
 def main():
@@ -23,6 +41,9 @@ def main():
 
     # set the authentication token and create a new FacebookParser object
     parser = FacebookParser(auth_token=AUTH_TOKEN)
+
+    # setup db connection
+    db = MongodbStorage()
 
     # set the limit (maximum allowed value in API: 100, maximum value because of timeout: 38 (at least when I tested))
     timestamp = time.time()
@@ -46,9 +67,14 @@ def main():
             # iterate over the posts of the given time interval and retrieve external content
             # noinspection PyBroadException
             try:
-                for post in parser.iterate_all_posts_for_page(pagename=supermarket, since=since, until=until):
-                    # ignore post if already processed
-                    a = post["id"]
+                for post in parser.iterate_all_user_posts_for_page(pagename=supermarket, since=since, until=until,
+                                                                   skip_posts_with_image=True):
+                    # ignore post if already stored
+                    if db.select_single_post({Post.COLL_POST_ID: post[FacebookParser.CONST_ID]}):
+                        continue
+
+                    __store_post(db, post)
+                    processed_posts_counter += 1
 
             except Exception:
                 traceback.print_exc()

@@ -1,5 +1,6 @@
 import datetime
 import logging
+
 from facepy.exceptions import FacebookError
 from facepy.graph_api import GraphAPI
 
@@ -8,15 +9,14 @@ class FacebookParser:
     """
     Class for parsing Facebook data
     """
-    CONST_COMMENT_CONTENT = "message"
-    CONST_COMMENTS = "comments"
-    CONST_DATE = "created_time"
     CONST_ID = "id"
-    CONST_LINK = "link"
+    CONST_FROM = "from"
+    CONST_MESSAGE = "message"
+    CONST_DATE = "created_time"
     CONST_PERMALINK = "permalink_url"
-    CONST_POST_CATEGORY = "category"
-    CONST_POST_CONTENT = "content"
+    CONST_COMMENTS = "comments"
     CONST_REACTIONS = "reactions"
+    CONST_ATTACHED_OBJ_ID = "object_id"
     CONST_REACTIONS_TYPES = ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
 
     LOGGER = logging.getLogger('FacebookParser')
@@ -45,17 +45,19 @@ class FacebookParser:
         :return: A single post (dictionary) per iteration
         """
         fields = [FacebookParser.CONST_ID,
+                  FacebookParser.CONST_MESSAGE,
                   FacebookParser.CONST_DATE,
-                  FacebookParser.CONST_LINK,
                   FacebookParser.CONST_PERMALINK,
-                  FacebookParser.CONST_COMMENTS]
+                  FacebookParser.CONST_COMMENTS,
+                  FacebookParser.CONST_FROM,
+                  FacebookParser.CONST_ATTACHED_OBJ_ID]
 
         field_query = ','.join(fields)
         try:
-            url = "/{pageid}/posts_to_page?since={since}&until={until}&fields={fields}".format(since=since,
-                                                                                       until=until,
-                                                                                       pageid=pageid,
-                                                                                       fields=field_query)
+            url = "/{pageid}/feed?since={since}&until={until}&fields={fields}".format(since=since,
+                                                                                      until=until,
+                                                                                      pageid=pageid,
+                                                                                      fields=field_query)
             response = self.graph.get(url)
             for data in response['data']:
                 if FacebookParser.CONST_COMMENTS not in data:
@@ -97,19 +99,25 @@ class FacebookParser:
             response[reaction] = response[reaction]["summary"]["total_count"]
         return response
 
-    def iterate_all_posts_for_page(self, pagename: str, since: int, until: int) -> list:
+    def iterate_all_user_posts_for_page(self, pagename: str, since: int, until: int, skip_posts_with_image: bool) -> list:
         """
-        Iterates over all posts of a site with given <pagename> that were posted between <since> and <until>
+        Iterates over all posts of a site with given <pagename> that were posted between <since> and <until> and that has not been created 
+        by page-owner
         
         :param pagename: The name of the site that shall be crawled
         :param since: The starting date of the interval in which the posts are crawled
-        :param until: The end date of the interval in which the posts are crawled: 
+        :param until: The end date of the interval in which the posts are crawled
+        :param skip_posts_with_image: Boolean indicating whether posts with images shall be skipped
         :return: A single post with reactions (dictionary) per iteration
         """
         post = None
         try:
             supermarket_id = self.__get_page_id(pagename)
             for post in self.__iterate_all_posts_from_page(pageid=supermarket_id, since=since, until=until):
+                if post[FacebookParser.CONST_FROM]['id'] == supermarket_id:
+                    continue
+                if skip_posts_with_image and FacebookParser.CONST_ATTACHED_OBJ_ID in post:
+                    continue
                 reactions = self.__get_reactions_for_post(post[FacebookParser.CONST_ID])
                 post[FacebookParser.CONST_REACTIONS] = reactions
                 yield post
