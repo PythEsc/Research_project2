@@ -7,12 +7,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import learn
 
-from convolutional_neural_network import data_helpers
-from importer.data_importer import DataImporter
-
 # Data Parameters
 # Parameters
 # ==================================================
+from python.convolutional_neural_network import data_helpers
+from python.importer.data_importer import DataImporter
 
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
 tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg", "Data source for the positive data.")
