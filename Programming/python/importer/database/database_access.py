@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from importer.database.data_types import Post, Comment
+from python.importer.database.data_types import Post, Comment
 
 
 class DataStorage(ABC):

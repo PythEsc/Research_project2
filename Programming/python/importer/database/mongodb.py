@@ -1,7 +1,7 @@
 import pymongo
 
-from importer.database.data_types import Post, Comment
-from importer.database.database_access import DataStorage
+from python.importer.database.data_types import Post, Comment
+from python.importer.database.database_access import DataStorage
 
 
 class MongodbStorage(DataStorage):
