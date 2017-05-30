@@ -7,6 +7,7 @@ import re
 import zipfile
 
 import pandas as pd
+from python.word2vec.word2vec_utitlity import clean_str
 
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -135,7 +136,7 @@ class DataImporter:
         for i, post in enumerate(posts):
             reactions = reactions_matrix[i]
             reaction_sum = sum(reactions)
-            if math.isnan(reaction_sum) or reaction_sum < 1:
+            if math.isnan(reaction_sum) or reaction_sum < 15:
                 continue
 
             new_reactions = []
