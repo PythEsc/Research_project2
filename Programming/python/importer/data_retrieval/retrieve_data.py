@@ -4,9 +4,9 @@ import time
 import traceback
 
 # configure logging
-from importer.data_retrieval.facebook.facebook_parser import FacebookParser
-from importer.database.data_types import Post, Comment
-from importer.database.mongodb import MongodbStorage
+from python.importer.data_retrieval.facebook.facebook_parser import FacebookParser
+from python.importer.database.data_types import Post, Comment
+from python.importer.database.mongodb import MongodbStorage
 
 FORMAT = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)
@@ -48,7 +48,7 @@ def main():
     # set the limit (maximum allowed value in API: 100, maximum value because of timeout: 38 (at least when I tested))
     timestamp = time.time()
 
-    # iterate over all newspapers
+    # iterate over all supermarkets
     for supermarket in SUPERMARKET:
         # get posts of the last half year
         since = int(timestamp - total_interval_size)

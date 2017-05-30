@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from python.importer.database.data_types import Post, Comment
+from python.importer.database.data_types import Post, Comment, Emotion
 
 
 class DataStorage(ABC):
@@ -94,5 +94,34 @@ class DataStorage(ABC):
 
         :param filter: The filter to search for
         :return: The amount (int) of Comments matching the filter
+        """
+        pass
+
+    @abstractmethod
+    def insert_emotion(self, emotion: Emotion):
+        """
+        Inserts a new emotion into the data
+
+        :param emotion: The new emotion
+        """
+        pass
+
+    @abstractmethod
+    def iterate_single_emotion(self, filter: dict, print_progress: bool = True) -> Emotion:
+        """
+        Iterator that returns a single Emotion object with each iteration
+
+        :param print_progress: If true the progress of iterating will be printed
+        :param filter: The filter to search for
+        :return: A Emotion object with each iteration
+        """
+        pass
+
+    def select_single_emotion(self, filter: dict) -> Emotion:
+        """
+        Returns a single emotion matching the given filter
+
+        :param filter: The filter to search for 
+        :return: A single Emotion object
         """
         pass

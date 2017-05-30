@@ -1,6 +1,6 @@
 import pymongo
 
-from python.importer.database.data_types import Post, Comment
+from python.importer.database.data_types import Post, Comment, Emotion
 from python.importer.database.database_access import DataStorage
 
 
@@ -8,6 +8,7 @@ class MongodbStorage(DataStorage):
     # Tables
     TABLE_POSTS = "posts"
     TABLE_COMMENTS = "comments"
+    TABLE_EMOTION = "emotion"
 
     def __init__(self, host="localhost", port=27017, database="research_project"):
         self.client = pymongo.MongoClient(host=host, port=port)
@@ -90,6 +91,21 @@ class MongodbStorage(DataStorage):
     # Comment-methods
     ###########################################################################
 
+    def iterate_single_comment(self, filter: dict, print_progress: bool = True) -> list:
+        comment_collection = self.db[MongodbStorage.TABLE_COMMENTS]
+        cursor = comment_collection.find(filter=filter, no_cursor_timeout=True).batch_size(100)
+
+        counter = 0
+        size = cursor.count()
+        for entry in cursor:
+            counter += 1
+            if print_progress:
+                print("\r%.2f%%" % (counter / size * 100), end='')
+            yield Comment(entry)
+        cursor.close()
+        if print_progress:
+            print("\n")
+
     def insert_comment(self, comment: Comment):
         comment_collection = self.db[MongodbStorage.TABLE_COMMENTS]
         comment_collection.insert_one(comment.data)
@@ -98,3 +114,31 @@ class MongodbStorage(DataStorage):
         comment_collection = self.db[MongodbStorage.TABLE_COMMENTS]
         count = comment_collection.count(filter)
         return count
+
+    ###########################################################################
+    # Emotion-methods
+    ###########################################################################
+
+    def insert_emotion(self, emotion: Emotion):
+        comment_collection = self.db[MongodbStorage.TABLE_EMOTION]
+        comment_collection.insert_one(emotion.data)
+
+    def iterate_single_emotion(self, filter: dict, print_progress: bool = True) -> Emotion:
+        emotion_collection = self.db[MongodbStorage.TABLE_EMOTION]
+        cursor = emotion_collection.find(filter=filter, no_cursor_timeout=True).batch_size(100)
+
+        counter = 0
+        size = cursor.count()
+        for entry in cursor:
+            counter += 1
+            if print_progress:
+                print("\r%.2f%%" % (counter / size * 100), end='')
+            return Emotion(entry)
+        cursor.close()
+        if print_progress:
+            print("\n")
+
+    def select_single_emotion(self, filter: dict) -> Emotion:
+        emotion_collection = self.db[MongodbStorage.TABLE_EMOTION]
+        result = emotion_collection.find_one(filter=filter, no_cursor_timeout=True)
+        return Emotion(result) if result is not None else None

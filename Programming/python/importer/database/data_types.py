@@ -8,8 +8,13 @@ class Post:
     COLL_DATE = "date"
     COLL_LINK = "link"
     COLL_REACTIONS = "reactions"
+    COLL_EMOTION = "emotion"
+    COLL_SENTIMENT = "sentiment"
+    COLL_COMMENT_EMOTION = "comments_emotion"
+    COLL_COMMENT_SENTIMENT = "comments_sentiment"
 
-    VALID_COLUMNS = [COLL_POST_ID, COLL_USER_ID, COLL_MESSAGE, COLL_DATE, COLL_LINK, COLL_REACTIONS]
+    VALID_COLUMNS = [COLL_POST_ID, COLL_USER_ID, COLL_MESSAGE, COLL_DATE, COLL_LINK, COLL_REACTIONS,
+                     COLL_COMMENT_SENTIMENT, COLL_COMMENT_EMOTION, COLL_SENTIMENT, COLL_EMOTION]
     MANDATORY_COLUMNS = [COLL_POST_ID, COLL_USER_ID, COLL_MESSAGE, COLL_DATE, COLL_LINK, COLL_REACTIONS]
 
     def __init__(self, structure: dict):
@@ -24,7 +29,7 @@ class Post:
         """
         for key, value in post.items():
             assert key in self.VALID_COLUMNS, "Post contains invalid key: '{key}'".format(key=key)
-            assert isinstance(value, (str, dict)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'" \
+            assert isinstance(value, (str, dict, list)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'" \
                 .format(key=key,
                         value=value)
 
@@ -77,6 +82,54 @@ class Post:
     @property
     def reactions(self) -> dict:
         return self.data[Post.COLL_REACTIONS]
+
+    @property
+    def sentiment(self) -> list:
+        if Post.COLL_SENTIMENT in self.data:
+            return self.data[Post.COLL_SENTIMENT]
+        else:
+            return []
+
+    @sentiment.setter
+    def sentiment(self, sentiment: list):
+        if len(sentiment) != 2:
+            raise ValueError("Sentiment must be a list of two entries [<sentiment>, <sentiment-ratio>]")
+        self.data[Post.COLL_SENTIMENT] = sentiment
+
+    @property
+    def emotion(self) -> list:
+        if Post.COLL_EMOTION in self.data:
+            return self.data[Post.COLL_EMOTION]
+        else:
+            return []
+
+    @emotion.setter
+    def emotion(self, emotion: list):
+        self.data[Post.COLL_EMOTION] = emotion
+
+    @property
+    def comment_sentiment(self) -> list:
+        if Post.COLL_COMMENT_SENTIMENT in self.data:
+            return self.data[Post.COLL_COMMENT_SENTIMENT]
+        else:
+            return []
+
+    @comment_sentiment.setter
+    def comment_sentiment(self, comment_sentiment: list):
+        if len(comment_sentiment) != 2:
+            raise ValueError("Sentiment must be a list of two entries [<sentiment>, <sentiment-ratio>]")
+        self.data[Post.COLL_COMMENT_SENTIMENT] = comment_sentiment
+
+    @property
+    def comment_emotion(self) -> list:
+        if Post.COLL_COMMENT_EMOTION in self.data:
+            return self.data[Post.COLL_COMMENT_EMOTION]
+        else:
+            return []
+
+    @comment_emotion.setter
+    def comment_emotion(self, comment_emotion: list):
+        self.data[Post.COLL_COMMENT_EMOTION] = comment_emotion
 
 
 class Comment:
@@ -140,9 +193,67 @@ class Comment:
         return self.data[Comment.COLL_PARENT_ID]
 
     @property
-    def fb_link(self) -> str:
+    def content(self) -> str:
         return self.data[Comment.COLL_CONT]
 
     @property
     def date(self) -> str:
         return self.data[Comment.COLL_DATE]
+
+
+class Emotion:
+    """
+    Holder class that contains the data of one emotion for a word
+    """
+    COLL_ID = "_id"
+    COLL_EMOTION = "emotion"
+
+    EMOTION_TYPES = ["ANGER", "ANTICIPATION", "DISGUST", "FEAR", "JOY", "SADNESS", "SURPRISE", "TRUST"]
+
+    VALID_COLUMNS = [COLL_ID, COLL_EMOTION]
+    MANDATORY_COLUMNS = [COLL_ID, COLL_EMOTION]
+
+    def __init__(self, structure: dict):
+        self.__check_emotion(structure)
+        self.data = structure
+
+    def __check_emotion(self, emotion: dict):
+        """
+        Check that the dictionary can be parsed to a valid emotion (that it contains all the necessary data and no data that is invalid)
+
+        :param emotion: The dictionary that contains the emotion's data
+        """
+        for key, value in emotion.items():
+            assert key in self.VALID_COLUMNS, "Emotion contains invalid key: '{key}'".format(key=key)
+            assert isinstance(value,
+                              (
+                                  str, float,
+                                  list)), "Emotion invalid. The entry for the key '{key}' is invalid: '{value}'" \
+                .format(key=key, value=value)
+
+        for key in self.MANDATORY_COLUMNS:
+            assert key in emotion, "Mandatory key missing in emotion: '{key}'".format(key=key)
+
+    @staticmethod
+    def create_from_single_values(emotion_name: str, emotion: list):
+        """
+        Creates a emotion object from single emotion values
+
+        :param emotion_name: The original name that was searched
+        :param emotion: The emotion list
+        :return: An emotion object
+        """
+
+        data = {Emotion.COLL_ID: emotion_name,
+                Emotion.COLL_EMOTION: emotion}
+
+        return Emotion(data)
+
+    @property
+    def id(self) -> str:
+        return self.data[Emotion.COLL_ID]
+
+    # [anger, anticipation, disgust, fear, joy, sadness, surprise, trust]
+    @property
+    def emotion(self) -> list:
+        return self.data[Emotion.COLL_EMOTION]
