@@ -9,11 +9,9 @@ import tensorflow as tf
 # Data loading params
 from tensorflow.contrib import learn
 
-from convolutional_neural_network import data_helpers
-from convolutional_neural_network.text_cnn import TextCNN
-# Parameters
-# ==================================================
-from importer.data_importer import DataImporter
+from python.convolutional_neural_network import data_helpers
+from python.convolutional_neural_network.text_cnn import TextCNN
+from python.importer.data_importer import DataImporter
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
@@ -27,8 +25,8 @@ tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (defau
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size", 24, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("batch_size", 16, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("num_epochs", 20, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
