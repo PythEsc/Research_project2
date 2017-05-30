@@ -2,6 +2,9 @@ import re
 
 import numpy as np
 
+from python.importer.database.data_types import Post
+from python.importer.database.mongodb import MongodbStorage
+
 
 def clean_str(string):
     """
@@ -62,3 +65,42 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             start_index = batch_num * batch_size
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
+
+
+def get_training_set(db: MongodbStorage):
+    reactions_right_list = ["LIKE", "LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
+    data = []
+    reactions_matrix = []
+
+    post_filter = {Post.COLL_MESSAGE: {'$exists': True}}
+    for post in db.iterate_single_post(post_filter):
+        data.append(post.message)
+        reactions_matrix.append(post.reactions)
+    [cleaned_posts, new_reactions_matrix] = [[], []]
+
+    for i, post in enumerate(data):
+        reactions = reactions_matrix[i]
+        reaction_sum = 0
+        try:
+            if type(reactions) is list:
+                integer_reactions = [int(numeric_string) for numeric_string in reactions]
+                reaction_sum += sum(integer_reactions)
+            else:
+                for key in reactions_right_list:
+                    reaction_sum += reactions[key]
+        except Exception:
+            continue
+        if np.math.isnan(reaction_sum) or reaction_sum < 5:
+            continue
+
+        new_reactions = []
+        if type(reactions) is list:
+            for reaction in reactions:
+                new_reactions.append(int(reaction) / reaction_sum)
+        else:
+            for key in reactions_right_list:
+                new_reactions.append(reactions[key] / reaction_sum)
+
+        cleaned_posts.append(post)
+        new_reactions_matrix.append(new_reactions)
+    return [cleaned_posts, new_reactions_matrix]
