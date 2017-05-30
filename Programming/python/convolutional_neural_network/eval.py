@@ -6,6 +6,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import learn
+from sklearn import metrics
 
 # Data Parameters
 # Parameters
@@ -17,8 +18,8 @@ tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity
 tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg", "Data source for the positive data.")
 
 # Eval Parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_string("checkpoint_dir", "runs/1493832323/checkpoints/", "Checkpoint directory from training run")
+tf.flags.DEFINE_integer("batch_size", 32, "Batch Size (default: 64)")
+tf.flags.DEFINE_string("checkpoint_dir", "runs/1495884681/checkpoints/", "Checkpoint directory from training run")
 tf.flags.DEFINE_boolean("eval_train", False, "Evaluate on all training data")
 
 # Misc Parameters
@@ -33,7 +34,7 @@ for attr, value in sorted(FLAGS.__flags.items()):
 print("")
 
 # CHANGE THIS: Load data. Load your own data here
-importer_sainsbury = DataImporter("../../../data/Filtered/Tesco.zip", "../../../data/Unzipped/Tesco")
+importer_sainsbury = DataImporter("../../../data/Filtered/Sainsbury.zip", "../../../data/Unzipped/Sainsbury")
 importer_sainsbury.load()
 x_text, y = importer_sainsbury.prepare_data_for_CNN()
 # if FLAGS.eval_train:
@@ -99,6 +100,10 @@ with graph.as_default():
                 all_predictions = np.vstack([all_predictions, batch_predictions])
 
 # Save the evaluation to a csv
+mae = metrics.mean_absolute_error(y_test, all_predictions)
+mse = metrics.mean_squared_error(y_test, all_predictions)
+print('\nMean absolute error: {}'.format(mae))
+print('Mean squared error: {}'.format(mse))
 predictions_human_readable = np.column_stack((np.array(x_raw), all_predictions))
 out_path = os.path.join(FLAGS.checkpoint_dir, "..", "prediction.csv")
 print("Saving evaluation to {0}".format(out_path))
