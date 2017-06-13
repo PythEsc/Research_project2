@@ -32,7 +32,8 @@ class Post:
             assert key in post, "Mandatory key missing in post: '{key}'".format(key=key)
 
     @staticmethod
-    def create_from_single_values(post_id: str, user_id: str, message: str, date: str, link: str, reactions: dict):
+    def create_from_single_values(post_id: str, user_id: str, message: str, date: str, link: str, reactions: dict,
+                                  off_topic: bool):
         """
         Creates a post object from single post values
         
@@ -42,6 +43,7 @@ class Post:
         :param date: The date of the post
         :param link: The facebook link of the post
         :param reactions: The facebook user reactions
+        :param off_topic: True if this post belongs to an off_topic company (no supermarket)
         :return: A Post object
         """
 
@@ -50,7 +52,8 @@ class Post:
                 Post.COLL_MESSAGE: message,
                 Post.COLL_DATE: date,
                 Post.COLL_LINK: link,
-                Post.COLL_REACTIONS: reactions}
+                Post.COLL_REACTIONS: reactions,
+                Post.COLL_OFF_TOPIC: off_topic}
 
         return Post(data)
 
@@ -78,6 +81,14 @@ class Post:
     def reactions(self) -> dict:
         return self.data[Post.COLL_REACTIONS]
 
+    @property
+    def off_topic(self) -> bool:
+        return self.data[Post.COLL_OFF_TOPIC] if Post.COLL_OFF_TOPIC in self.data else False
+
+    @off_topic.setter
+    def off_topic(self, off_topic: bool):
+        self.data[Post.COLL_OFF_TOPIC] = off_topic
+
 
 class Comment:
     """
@@ -104,8 +115,10 @@ class Comment:
         """
         for key, value in comment.items():
             assert key in self.VALID_COLUMNS, "Comment contains invalid key: '{key}'".format(key=key)
-            assert isinstance(value, str), "Comment invalid. The entry for the key '{key}' is invalid: '{value}'".format(key=key,
-                                                                                                                         value=value)
+            assert isinstance(value,
+                              str), "Comment invalid. The entry for the key '{key}' is invalid: '{value}'".format(
+                key=key,
+                value=value)
 
         for key in self.MANDATORY_COLUMNS:
             assert key in comment, "Mandatory key missing in comment: '{key}'".format(key=key)
