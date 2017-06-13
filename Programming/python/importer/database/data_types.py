@@ -31,7 +31,7 @@ class Post:
         for key, value in post.items():
             assert key in self.VALID_COLUMNS, "Post contains invalid key: '{key}'".format(key=key)
             assert isinstance(value, (
-                str, dict, list, bool)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'".format(
+                str, dict, list, bool, float)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'".format(
                 key=key,
                 value=value)
 
@@ -89,16 +89,12 @@ class Post:
         return self.data[Post.COLL_REACTIONS]
 
     @property
-    def sentiment(self) -> list:
+    def sentiment(self) -> float:
         if Post.COLL_SENTIMENT in self.data:
             return self.data[Post.COLL_SENTIMENT]
-        else:
-            return []
 
     @sentiment.setter
-    def sentiment(self, sentiment: list):
-        if len(sentiment) != 2:
-            raise ValueError("Sentiment must be a list of two entries [<sentiment>, <sentiment-ratio>]")
+    def sentiment(self, sentiment: float):
         self.data[Post.COLL_SENTIMENT] = sentiment
 
     @property
@@ -113,16 +109,12 @@ class Post:
         self.data[Post.COLL_EMOTION] = emotion
 
     @property
-    def comment_sentiment(self) -> list:
+    def comment_sentiment(self) -> float:
         if Post.COLL_COMMENT_SENTIMENT in self.data:
             return self.data[Post.COLL_COMMENT_SENTIMENT]
-        else:
-            return []
 
     @comment_sentiment.setter
-    def comment_sentiment(self, comment_sentiment: list):
-        if len(comment_sentiment) != 2:
-            raise ValueError("Sentiment must be a list of two entries [<sentiment>, <sentiment-ratio>]")
+    def comment_sentiment(self, comment_sentiment: float):
         self.data[Post.COLL_COMMENT_SENTIMENT] = comment_sentiment
 
     @property

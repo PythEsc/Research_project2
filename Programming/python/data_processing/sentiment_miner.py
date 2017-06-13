@@ -64,7 +64,7 @@ class Sentimenter:
                         sentiment_counter += 2
 
                 sentiment_ratio = sentiment_counter / len(sentences)
-                post.comment_sentiment = (self.get_sentiment_value(sentiment_ratio), sentiment_ratio)
+                post.comment_sentiment = sentiment_ratio
                 self.data_storage.update_post(post)
             except Exception:
                 print("Error while processing post with id: " + post.post_id)
