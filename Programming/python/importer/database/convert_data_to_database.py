@@ -5,7 +5,7 @@ from importer.database.mongodb import MongodbStorage
 
 
 def read_data(database: MongodbStorage, supermarket: str, prefix: str):
-    base_string = "../../../data/Filtered/" + supermarket + "/";
+    base_string = "../../../../data/Filtered/" + supermarket + "/"
     months = ["March/", "April/", "May/", "June/", "July/", "August/", "September/", "October/", "November/",
               "December/"]
     count = 0
@@ -29,8 +29,10 @@ def read_data(database: MongodbStorage, supermarket: str, prefix: str):
             try:
                 user_id = row[1].replace("post_user_", "")
                 post_object = Post.create_from_single_values(message=row[4], date=row[9], link=row[3], post_id=row[2],
-                                                             reactions=[row[22], row[23], row[24], row[25], row[26],
-                                                                        row[27]], user_id=user_id)
+                                                             reactions={'LIKE': row[22], 'LOVE': row[23],
+                                                                        'WOW': row[24], 'HAHA': row[25], 'SAD': row[26],
+                                                                        'ANGRY': row[27], 'THANKFUL': row[28]},
+                                                             user_id=user_id, off_topic=False)
                 database.insert_post(post_object)
             except Exception:
                 print("Error while processing post with id: " + user_id)
