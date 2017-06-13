@@ -3,9 +3,9 @@ import traceback
 
 from pycorenlp.corenlp import StanfordCoreNLP
 
-from python.importer.database.data_types import Post, Comment
-from python.importer.database.database_access import DataStorage
-from python.importer.database.mongodb import MongodbStorage
+from importer.database.data_types import Post, Comment
+from importer.database.database_access import DataStorage
+from importer.database.mongodb import MongodbStorage
 
 
 class Sentimenter:
@@ -99,6 +99,7 @@ class Sentimenter:
             except Exception:
                 print("Error while processing post with id: " + post.post_id)
                 traceback.print_exc()
+
 
 if __name__ == '__main__':
     db = MongodbStorage()

@@ -2,8 +2,8 @@ import re
 
 import numpy as np
 
-from python.importer.database.data_types import Post
-from python.importer.database.mongodb import MongodbStorage
+from importer.database.data_types import Post
+from importer.database.mongodb import MongodbStorage
 
 
 def clean_str(string):
@@ -53,7 +53,7 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
     data = np.array(data)
     data_size = len(data)
-    num_batches_per_epoch = int((len(data)-1)/batch_size) + 1
+    num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
     for epoch in range(num_epochs):
         # Shuffle the data at each epoch
         if shuffle:

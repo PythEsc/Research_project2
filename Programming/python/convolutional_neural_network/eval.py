@@ -5,17 +5,19 @@ import os
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import learn
 from sklearn import metrics
+from tensorflow.contrib import learn
 
 # Data Parameters
 # Parameters
 # ==================================================
-from python.convolutional_neural_network import data_helpers
-from python.importer.data_importer import DataImporter
+from convolutional_neural_network import data_helpers
+from importer.data_importer import DataImporter
 
-tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
-tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg", "Data source for the positive data.")
+tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos",
+                       "Data source for the positive data.")
+tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg",
+                       "Data source for the positive data.")
 
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size", 32, "Batch Size (default: 64)")
