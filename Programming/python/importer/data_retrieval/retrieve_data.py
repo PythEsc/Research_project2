@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format=FORMAT)
 ONE_DAY = 60 * 60 * 24
 AUTH_TOKEN = '1279401372135473|e1948b86d049d7d171db22b5dc0eb9a7'
 SUPERMARKET = ['AldiUK', 'walmart', 'tesco', 'sainsburys']
-OFF_TOPIC_SHOPS = ['homedepot', 'target', 'Walgreens', 'Amazon', 'bestbuy', 'Safeway', 'Macys', 'publix', 'Costco']
+OFF_TOPIC_SHOPS = ['target', 'Walgreens', 'Amazon', 'bestbuy', 'Safeway', 'Macys', 'publix', 'Costco']
 
 
 def __store_post(db_storage: DataStorage, post: dict, off_topic: bool):
@@ -54,10 +54,7 @@ def main():
     # iterate over all supermarkets
     for shop in SUPERMARKET + OFF_TOPIC_SHOPS:
         # get posts of the last half year
-        if shop in SUPERMARKET:
-            since = int(timestamp - ONE_DAY * 60)
-        else:
-            since = int(timestamp - total_interval_size)
+        since = int(timestamp - total_interval_size)
         until = int(since + time_step)
         batch_counter = 0
         processed_posts_counter = 0
