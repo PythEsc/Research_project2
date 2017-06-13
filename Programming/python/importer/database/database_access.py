@@ -78,6 +78,17 @@ class DataStorage(ABC):
         pass
 
     @abstractmethod
+    def iterate_single_comment(self, filter: dict, print_progress: bool = True) -> list:
+        """
+        Iterator that returns a single Comment object with each iteration
+
+        :param filter: The filter to search for
+        :param print_progress: Print the progress of this iteration?
+        :return: A Comment object with each iteration
+        """
+        pass
+
+    @abstractmethod
     def count_posts(self, filter: dict) -> int:
         """
         Returns the amount of Posts matching the given <filter>
