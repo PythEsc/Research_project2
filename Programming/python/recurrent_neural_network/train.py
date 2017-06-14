@@ -10,6 +10,8 @@ import os
 import datetime
 
 from recurrent_neural_network.text_rnn import TextRNN
+from python.convolutional_neural_network.data_helpers import get_training_set
+from python.importer.database.mongodb import MongodbStorage
 
 # Load the data
 print("Loading data...")
@@ -25,6 +27,9 @@ x_text2, y2 = importer_tesco.prepare_data_for_CNN()
 for i, x in enumerate(x_text2):
     x_text.append(x)
     y.append(y2[i])
+
+# db = MongodbStorage()
+# x_text, y = get_training_set(db)
 
 # Build vocabulary
 max_document_length = max([len(x.split(" ")) for x in x_text])
@@ -73,7 +78,7 @@ num_epochs = 20
 embedding_dim = 50
 lstm_size=128
 lstm_layers=1
-batch_size = 120
+batch_size = 17
 learning_rate=0.01
 
 with tf.Graph().as_default():
@@ -96,7 +101,7 @@ with tf.Graph().as_default():
         t = time()
         for e in range(num_epochs):
 
-            if time() - t > 300:
+            if time() - t > 120:
                 continue
 
             state = sess.run(rnn.initial_state)
