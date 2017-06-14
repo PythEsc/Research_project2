@@ -6,6 +6,9 @@ Documents/Project Plan/Project Plan.blg
 Documents/Project Plan/Project Plan.pdf
 Programming/Unzipped
 Programming/training
+data/Unzipped/
+*.pyc
+Programming/python/recurrent_neural_network/checkpoints/
 data/Filtered/Sainsbury/*
 data/Filtered/Tesco/*
 .idea/*
