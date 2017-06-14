@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from python.importer.database.data_types import Post, Comment, Emotion
+from importer.database.data_types import Post, Comment, Emotion
 
 
 class DataStorage(ABC):
@@ -74,6 +74,17 @@ class DataStorage(ABC):
         
         :param filter: The filter to search for
         :return: A Post object with each iteration
+        """
+        pass
+
+    @abstractmethod
+    def iterate_single_comment(self, filter: dict, print_progress: bool = True) -> list:
+        """
+        Iterator that returns a single Comment object with each iteration
+
+        :param filter: The filter to search for
+        :param print_progress: Print the progress of this iteration?
+        :return: A Comment object with each iteration
         """
         pass
 

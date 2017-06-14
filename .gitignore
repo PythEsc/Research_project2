@@ -9,3 +9,6 @@ Programming/training
 data/Unzipped/
 *.pyc
 Programming/python/recurrent_neural_network/checkpoints/
+data/Filtered/Sainsbury/*
+data/Filtered/Tesco/*
+.idea/*

@@ -12,9 +12,10 @@ class Post:
     COLL_SENTIMENT = "sentiment"
     COLL_COMMENT_EMOTION = "comments_emotion"
     COLL_COMMENT_SENTIMENT = "comments_sentiment"
+    COLL_OFF_TOPIC = "off_topic"
 
     VALID_COLUMNS = [COLL_POST_ID, COLL_USER_ID, COLL_MESSAGE, COLL_DATE, COLL_LINK, COLL_REACTIONS,
-                     COLL_COMMENT_SENTIMENT, COLL_COMMENT_EMOTION, COLL_SENTIMENT, COLL_EMOTION]
+                     COLL_COMMENT_SENTIMENT, COLL_COMMENT_EMOTION, COLL_SENTIMENT, COLL_EMOTION, COLL_OFF_TOPIC]
     MANDATORY_COLUMNS = [COLL_POST_ID, COLL_USER_ID, COLL_MESSAGE, COLL_DATE, COLL_LINK, COLL_REACTIONS]
 
     def __init__(self, structure: dict):
@@ -29,15 +30,17 @@ class Post:
         """
         for key, value in post.items():
             assert key in self.VALID_COLUMNS, "Post contains invalid key: '{key}'".format(key=key)
-            assert isinstance(value, (str, dict, list)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'" \
-                .format(key=key,
-                        value=value)
+            assert isinstance(value, (
+                str, dict, list, bool)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'".format(
+                key=key,
+                value=value)
 
         for key in self.MANDATORY_COLUMNS:
             assert key in post, "Mandatory key missing in post: '{key}'".format(key=key)
 
     @staticmethod
-    def create_from_single_values(post_id: str, user_id: str, message: str, date: str, link: str, reactions: dict):
+    def create_from_single_values(post_id: str, user_id: str, message: str, date: str, link: str, reactions: dict,
+                                  off_topic: bool):
         """
         Creates a post object from single post values
         
@@ -47,6 +50,7 @@ class Post:
         :param date: The date of the post
         :param link: The facebook link of the post
         :param reactions: The facebook user reactions
+        :param off_topic: True if this post belongs to an off_topic company (no supermarket)
         :return: A Post object
         """
 
@@ -55,7 +59,8 @@ class Post:
                 Post.COLL_MESSAGE: message,
                 Post.COLL_DATE: date,
                 Post.COLL_LINK: link,
-                Post.COLL_REACTIONS: reactions}
+                Post.COLL_REACTIONS: reactions,
+                Post.COLL_OFF_TOPIC: off_topic}
 
         return Post(data)
 
@@ -131,6 +136,14 @@ class Post:
     def comment_emotion(self, comment_emotion: list):
         self.data[Post.COLL_COMMENT_EMOTION] = comment_emotion
 
+    @property
+    def off_topic(self) -> bool:
+        return self.data[Post.COLL_OFF_TOPIC] if Post.COLL_OFF_TOPIC in self.data else False
+
+    @off_topic.setter
+    def off_topic(self, off_topic: bool):
+        self.data[Post.COLL_OFF_TOPIC] = off_topic
+
 
 class Comment:
     """
@@ -157,8 +170,10 @@ class Comment:
         """
         for key, value in comment.items():
             assert key in self.VALID_COLUMNS, "Comment contains invalid key: '{key}'".format(key=key)
-            assert isinstance(value, str), "Comment invalid. The entry for the key '{key}' is invalid: '{value}'".format(key=key,
-                                                                                                                         value=value)
+            assert isinstance(value,
+                              str), "Comment invalid. The entry for the key '{key}' is invalid: '{value}'".format(
+                key=key,
+                value=value)
 
         for key in self.MANDATORY_COLUMNS:
             assert key in comment, "Mandatory key missing in comment: '{key}'".format(key=key)
