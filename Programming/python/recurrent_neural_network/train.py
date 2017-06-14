@@ -101,7 +101,7 @@ with tf.Graph().as_default():
         t = time()
         for e in range(num_epochs):
 
-            if time() - t > 120:
+            if time() - t > 1000:
                 continue
 
             state = sess.run(rnn.initial_state)
@@ -112,7 +112,8 @@ with tf.Graph().as_default():
                         rnn.input_y: y,
                         rnn.dropout_keep_prob: 0.5,
                         rnn.initial_state: state}
-                loss, state, _ = sess.run([rnn.loss, rnn.final_state, rnn.optimizer], feed_dict=feed)
+                loss, state, _, error = sess.run([rnn.loss, rnn.final_state, rnn.optimizer, rnn.accuracy], feed_dict=feed)
+
 
                 # print("Step: {}".format(ii))
 
@@ -120,7 +121,8 @@ with tf.Graph().as_default():
                     last_e = e
                     print("Epoch: {}/{}".format(e, num_epochs),
                           "Iteration: {}".format(iteration),
-                          "Train loss: {:.3f}".format(loss))
+                          "Train loss: {:.3f}".format(loss),
+                          "Mean squared error: {:.3f}".format(error) )
 
                 # if iteration % 25 == 0:
                 #     val_acc = []
