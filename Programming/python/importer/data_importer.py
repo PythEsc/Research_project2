@@ -135,6 +135,7 @@ class DataImporter:
 
         for i, post in enumerate(posts):
             reactions = reactions_matrix[i]
+            reactions = reactions[1:]  # remove likes
             reaction_sum = sum(reactions)
             if math.isnan(reaction_sum) or reaction_sum < 15:
                 continue
