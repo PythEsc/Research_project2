@@ -25,31 +25,14 @@ def predict_single_post():
 
         post = request.json['post']
 
-        if not isinstance(post, str):
-            abort(400, 'The parameter "post" needs to be of type str')
-
-        # Emotions
-        emotion_list = emotion.get_post_emotion_value(post)
-        emotions = {}
-        for index, emotionname in enumerate(Emotion.EMOTION_TYPES):
-            emotions[emotionname] = emotion_list[index]
-
-        # Sentiment
-        sentiments = sentiment.get_post_sentiment_value(post)
-
-        # Reactions
-        # TODO: Add the reaction_prediction
-
-        # Create response
-        response = dict(reactions={},
-                        emotions=emotions,
-                        sentiment=sentiments)
+        response = __process_single_post(post)
 
         return jsonify(response)
     except Exception as e:
         print("Error processing request: " + str(request.json))
         traceback.print_exc()
         abort(500, str(e))
+
 
 @app.route('/predict/batch', methods=['POST'])
 def predict_batch_post():
@@ -66,25 +49,7 @@ def predict_batch_post():
 
         response_list = []
         for post in posts:
-            if not isinstance(post, str):
-                abort(400, 'The parameter "posts" may only contain values of type str')
-
-            # Emotions
-            emotion_list = emotion.get_post_emotion_value(post)
-            emotions = {}
-            for index, emotionname in enumerate(Emotion.EMOTION_TYPES):
-                emotions[emotionname] = emotion_list[index]
-
-            # Sentiment
-            sentiments = sentiment.get_post_sentiment_value(post)
-
-            # Reactions
-            # TODO: Add the reaction_prediction
-
-            # Create response
-            response = dict(reactions={},
-                            emotions=emotions,
-                            sentiment=sentiments)
+            response = __process_single_post(post)
             response_list.append(response)
 
         return jsonify(response_list)
@@ -92,7 +57,6 @@ def predict_batch_post():
         print("Error processing request: " + str(request.json))
         traceback.print_exc()
         abort(500, str(e))
-
 
 
 @app.errorhandler(404)
@@ -108,6 +72,29 @@ def bad_request(error):
 @app.errorhandler(500)
 def internal_server_error(error):
     return make_response(jsonify({'message': error.description}), 500)
+
+
+def __process_single_post(post):
+    if not isinstance(post, str):
+        abort(400, 'The parameter "post" needs to be of type str')
+
+    # Emotions
+    emotion_list = emotion.get_post_emotion_value(post)
+    emotions = {}
+    for index, emotionname in enumerate(Emotion.EMOTION_TYPES):
+        emotions[emotionname] = emotion_list[index]
+
+    # Sentiment
+    sentiments = sentiment.get_post_sentiment_value(post)
+
+    # Reactions
+    # TODO: Add the reaction_prediction
+
+    # Create response
+    response = dict(reactions={},
+                    emotions=emotions,
+                    sentiment=sentiments)
+    return response
 
 
 if __name__ == '__main__':
