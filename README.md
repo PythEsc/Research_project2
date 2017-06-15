@@ -1,1 +1,2 @@
-# Research_project2
+# Research project 2017 Summer - Facebook Reaction Prediciton for Supermarket Customer Experience
+This project is part of the Artificial Intelligence Master of Science at University Maastricht at the Department of Data Science and Knowledge Engineering.
