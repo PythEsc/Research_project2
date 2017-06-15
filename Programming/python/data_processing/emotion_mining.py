@@ -3,9 +3,9 @@ import traceback
 
 from pycorenlp.corenlp import StanfordCoreNLP
 
-from python.importer.database.data_types import Emotion, Comment, Post
-from python.importer.database.database_access import DataStorage
-from python.importer.database.mongodb import MongodbStorage
+from importer.database.data_types import Emotion, Comment, Post
+from importer.database.database_access import DataStorage
+from importer.database.mongodb import MongodbStorage
 
 
 class EmotionMiner:

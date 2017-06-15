@@ -7,8 +7,6 @@ import re
 import zipfile
 
 import pandas as pd
-from python.word2vec.word2vec_utitlity import clean_str
-
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 logger = logging.getLogger("DataImporter")

@@ -1,5 +1,4 @@
 import tensorflow as tf
-from sklearn import metrics
 
 
 class TextCNN(object):
@@ -83,4 +82,3 @@ class TextCNN(object):
         print(type(self.input_y.eval()))
         with tf.name_scope("accuracy"):
             self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))))
-

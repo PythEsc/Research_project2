@@ -1,17 +1,12 @@
-import tensorflow as tf
-from importer.data_importer import DataImporter
-import numpy as np
-from tensorflow.contrib import learn
-from sklearn import metrics
-import itertools
 from time import time
 
-import os
-import datetime
+import numpy as np
+import tensorflow as tf
+from sklearn import metrics
+from tensorflow.contrib import learn
 
+from importer.data_importer import DataImporter
 from recurrent_neural_network.text_rnn import TextRNN
-from python.convolutional_neural_network.data_helpers import get_training_set
-from python.importer.database.mongodb import MongodbStorage
 
 # Load the data
 print("Loading data...")
