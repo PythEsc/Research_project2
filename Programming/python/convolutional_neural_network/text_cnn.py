@@ -21,10 +21,10 @@ class TextCNN(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            self.W = tf.Variable(
+            self.embedding_vector = tf.Variable(
                 tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                name="W")
-            self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
+                name="embedding_vector")
+            self.embedded_chars = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
 
         # Create a convolution + maxpool layer for each filter size
@@ -70,7 +70,8 @@ class TextCNN(object):
             b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
-            self.scores = tf.nn.softmax(tf.matmul(self.h_drop, W) + b, name="scores")
+            Wb = tf.matmul(self.h_drop, W) + b
+            self.scores = tf.nn.softmax(Wb, name="scores")
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
@@ -78,6 +79,8 @@ class TextCNN(object):
             self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
+        print(type(self.scores.eval()))
+        print(type(self.input_y.eval()))
         with tf.name_scope("accuracy"):
-            correct_predictions = metrics.mean_squared_error(self.input_y, self.scores)
-            self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
+            self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))))
+
