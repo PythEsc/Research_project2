@@ -23,17 +23,6 @@ class Sentimenter:
         self.nlp = StanfordCoreNLP('http://localhost:9000')
         self.properties_sentiment = {'annotators': 'sentiment', 'outputFormat': 'json'}
 
-    def get_sentiment_value(self, sentiment_counter):
-        if sentiment_counter < -0.5:
-            # negative
-            result = 'negative'
-        elif sentiment_counter > 0.5:
-            # positive
-            result = 'positive'
-        else:
-            result = 'neutral'
-        return result
-
     def tag_comments_sentiment_to_posts(self):
         """
         Iterates over all entries in the given DataStorage that do not have a NER tag yet and creates those
@@ -48,23 +37,7 @@ class Sentimenter:
                 for comment in self.data_storage.iterate_single_comment(filter_comment, False):
                     comment_collection = comment_collection + os.linesep + comment.content
 
-                output = self.nlp.annotate(comment_collection, properties=self.properties_sentiment)
-                sentences = output['sentences']
-
-                sentiment_counter = 0
-                for sentence in sentences:
-                    sentiment = sentence['sentiment']
-                    if sentiment == 'Negative':
-                        sentiment_counter -= 1
-                    if sentiment == 'Verynegative':
-                        sentiment_counter -= 2
-                    elif sentiment == 'Positive':
-                        sentiment_counter += 1
-                    elif sentiment == 'Verypositive':
-                        sentiment_counter += 2
-
-                sentiment_ratio = sentiment_counter / len(sentences)
-                post.comment_sentiment = sentiment_ratio
+                post.comment_sentiment = self.get_post_sentiment_value(comment_collection)
                 self.data_storage.update_post(post)
             except Exception:
                 print("Error while processing post with id: " + post.post_id)
@@ -78,27 +51,30 @@ class Sentimenter:
         filter = {Post.COLL_SENTIMENT: {'$exists': False}}
         for post in self.data_storage.iterate_single_post(filter):
             try:
-                output = self.nlp.annotate(post.message, properties=self.properties_sentiment)
-                sentences = output['sentences']
-
-                sentiment_counter = 0
-                for sentence in sentences:
-                    sentiment = sentence['sentiment']
-                    if sentiment == 'Negative':
-                        sentiment_counter -= 1
-                    if sentiment == 'Verynegative':
-                        sentiment_counter -= 2
-                    elif sentiment == 'Positive':
-                        sentiment_counter += 1
-                    elif sentiment == 'Verypositive':
-                        sentiment_counter += 2
-
-                sentiment_ratio = sentiment_counter / len(sentences)
-                post.sentiment = (self.get_sentiment_value(sentiment_ratio), sentiment_ratio)
+                post.sentiment = self.get_post_sentiment_value(post.message)
                 self.data_storage.update_post(post)
             except Exception:
                 print("Error while processing post with id: " + post.post_id)
                 traceback.print_exc()
+
+    def get_post_sentiment_value(self, content: str):
+        output = self.nlp.annotate(content, properties=self.properties_sentiment)
+        sentences = output['sentences']
+
+        sentiment_counter = 0
+        for sentence in sentences:
+            sentiment = sentence['sentiment']
+            if sentiment == 'Negative':
+                sentiment_counter -= 1
+            if sentiment == 'Verynegative':
+                sentiment_counter -= 2
+            elif sentiment == 'Positive':
+                sentiment_counter += 1
+            elif sentiment == 'Verypositive':
+                sentiment_counter += 2
+
+        sentiment_ratio = sentiment_counter / len(sentences)
+        return sentiment_ratio
 
 
 if __name__ == '__main__':
