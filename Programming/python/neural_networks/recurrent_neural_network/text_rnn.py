@@ -8,7 +8,7 @@ from tensorflow.contrib import learn
 
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
-from neural_networks.data_helpers import get_training_set
+from neural_networks.data_helpers import get_training_set, batch_iter
 from neural_networks.neural_network import NeuralNetwork
 
 
@@ -73,7 +73,7 @@ class TextRNN(NeuralNetwork):
         self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))))
 
     @staticmethod
-    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.9):
+    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.1):
         x_text, y = get_training_set(db)
 
         # Build vocabulary
@@ -100,24 +100,6 @@ class TextRNN(NeuralNetwork):
 
         # Training
         # ==================================================
-        def batch_iter(data, batch_size, shuffle=True):
-            """
-            Generates a batch iterator for a dataset.
-            """
-            data = np.array(data)
-            data_size = len(data)
-            num_batches_per_epoch = int((len(data) - 1) / batch_size)  # + 1
-            if shuffle:
-                shuffle_indices = np.random.permutation(np.arange(data_size))
-                shuffled_data = data[shuffle_indices]
-            else:
-                shuffled_data = data
-            for batch_num in range(num_batches_per_epoch):
-                start_index = batch_num * batch_size
-                end_index = min((batch_num + 1) * batch_size, data_size)
-                print("\rBatch iteration: %.2f%%" % (batch_num/num_batches_per_epoch*100), end='')
-                yield shuffled_data[start_index:end_index]
-
         num_epochs = 20
         embedding_dim = 50
         lstm_size = 128
@@ -142,58 +124,39 @@ class TextRNN(NeuralNetwork):
 
                 saver = tf.train.Saver()
                 sess.run(tf.global_variables_initializer())
-                iteration = 1
-                last_e = 0
-                t = time()
-                error = required_mse + 1
-                for e in range(num_epochs):
+                epoch = 1
+                num_batches_per_epoch = int((len(x_train) - 1) / batch_size) + 1
 
-                    if time() - t > 1000:
-                        break
+                state = sess.run(rnn.initial_state)
 
-                    state = sess.run(rnn.initial_state)
+                for i, batch in enumerate(batch_iter(list(zip(x_train, y_train)), batch_size, num_epochs)):
+                    x, y = zip(*batch)
+                    feed = {rnn.input_x: x,
+                            rnn.input_y: y,
+                            rnn.dropout_keep_prob: 0.5,
+                            rnn.initial_state: state}
+                    loss, state, _, error = sess.run([rnn.loss, rnn.final_state, rnn.optimizer, rnn.accuracy],
+                                                     feed_dict=feed)
 
-                    for ii, batch in enumerate(batch_iter(list(zip(x_train, y_train)), batch_size, e)):
-                        x, y = zip(*batch)
-                        feed = {rnn.input_x: x,
-                                rnn.input_y: y,
-                                rnn.dropout_keep_prob: 0.5,
-                                rnn.initial_state: state}
-                        loss, state, _, error = sess.run([rnn.loss, rnn.final_state, rnn.optimizer, rnn.accuracy],
-                                                         feed_dict=feed)
+                    progress = i / (num_epochs * num_batches_per_epoch)
+                    print("\rBatch progress: %.2f%%" % progress, end='')
 
-                        # print("Step: {}".format(ii))
+                    if (i + 1) % num_batches_per_epoch == 0:
+                        print("\nEpoch: {}/{}".format(epoch, num_epochs),
+                              "Train loss: {:.3f}".format(loss),
+                              "Mean squared error: {:.3f}\n".format(error))
 
-                        if last_e < e:
-                            last_e = e
-                            print("Epoch: {}/{}".format(e, num_epochs),
-                                  "Iteration: {}".format(iteration),
-                                  "Train loss: {:.3f}".format(loss),
-                                  "Mean squared error: {:.3f}".format(error))
+                        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+                        checkpoint_dir = os.path.abspath("./checkpoints/")
+                        if not os.path.exists(checkpoint_dir):
+                            os.makedirs(checkpoint_dir)
+                        saver.save(sess, "./checkpoints/rnn.ckpt")
 
-                        # if iteration % 25 == 0:
-                        #     val_acc = []
-                        #     val_state = sess.run(rnn.cell.zero_state(batch_size, tf.float32))
-                        #     for batch in batch_iter(list(zip(x_dev, y_dev)), batch_size, num_epochs):
-                        #         x, y = zip(*batch)
-                        #         feed = {rnn.input_x: x,
-                        #                 rnn.input_y: y,
-                        #                 rnn.dropout_keep_prob: 1,
-                        #                 rnn.initial_state: val_state}
-                        #         batch_acc, val_state = sess.run([rnn.accuracy, rnn.final_state], feed_dict=feed)
-                        #         val_acc.append(batch_acc)
-                        #     print("Val acc: {:.3f}".format(np.mean(val_acc)))
-                        iteration += 1
+                        if error < required_mse:
+                            print("Reached the required mean squared error. Stop training")
+                            break
 
-                    # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
-                    checkpoint_dir = os.path.abspath("./checkpoints/")
-                    if not os.path.exists(checkpoint_dir):
-                        os.makedirs(checkpoint_dir)
-                    saver.save(sess, "./checkpoints/rnn.ckpt")
-
-                    if error < required_mse:
-                        print("Reached the required mean squared error. Stop training")
-                        break
+                        epoch += 1
 
                 pred = []
 
