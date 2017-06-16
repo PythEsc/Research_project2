@@ -1,5 +1,4 @@
 import os
-from time import time
 
 import numpy as np
 import tensorflow as tf
@@ -73,7 +72,7 @@ class TextRNN(NeuralNetwork):
         self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))))
 
     @staticmethod
-    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.1):
+    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3):
         x_text, y = get_training_set(db)
 
         # Build vocabulary
@@ -125,7 +124,7 @@ class TextRNN(NeuralNetwork):
                 saver = tf.train.Saver()
                 sess.run(tf.global_variables_initializer())
                 epoch = 1
-                num_batches_per_epoch = int((len(x_train) - 1) / batch_size) + 1
+                num_batches_per_epoch = int((len(x_train) - 1) / batch_size)
 
                 state = sess.run(rnn.initial_state)
 
@@ -138,19 +137,21 @@ class TextRNN(NeuralNetwork):
                     loss, state, _, error = sess.run([rnn.loss, rnn.final_state, rnn.optimizer, rnn.accuracy],
                                                      feed_dict=feed)
 
-                    progress = i / (num_epochs * num_batches_per_epoch)
+                    progress = i / (num_epochs * num_batches_per_epoch) * 100
                     print("\rBatch progress: %.2f%%" % progress, end='')
 
                     if (i + 1) % num_batches_per_epoch == 0:
                         print("\nEpoch: {}/{}".format(epoch, num_epochs),
                               "Train loss: {:.3f}".format(loss),
-                              "Mean squared error: {:.3f}\n".format(error))
+                              "Mean squared error: {:.3f}".format(error))
 
                         # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
                         checkpoint_dir = os.path.abspath("./checkpoints/")
                         if not os.path.exists(checkpoint_dir):
                             os.makedirs(checkpoint_dir)
+                        print("Saving model to " + str(checkpoint_dir))
                         saver.save(sess, "./checkpoints/rnn.ckpt")
+                        vocab_processor.save(os.path.join("./checkpoints", "vocab"))
 
                         if error < required_mse:
                             print("Reached the required mean squared error. Stop training")
@@ -161,7 +162,7 @@ class TextRNN(NeuralNetwork):
                 pred = []
 
                 test_state = sess.run(rnn.cell.zero_state(batch_size, tf.float32))
-                for ii, batch in enumerate(batch_iter(list(zip(x_dev, y_dev)), batch_size, 1)):
+                for batch in batch_iter(list(zip(x_dev, y_dev)), batch_size, 1):
                     x, y = zip(*batch)
                     feed = {rnn.input_x: x,
                             rnn.input_y: y,
@@ -182,10 +183,38 @@ class TextRNN(NeuralNetwork):
 
     @staticmethod
     def predict(content: str) -> list:
-        pass
+        # Map data into vocabulary
+        vocab_path = os.path.join("./checkpoints", "vocab")
+        vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
+        x = np.array(list(vocab_processor.transform(content)))
+
+        graph = tf.Graph()
+        with graph.as_default():
+            sess = tf.Session()
+            with sess.as_default():
+                # Load the saved meta graph and restore variables
+                saver = tf.train.import_meta_graph("{}.meta".format("./checkpoints/rnn.ckpt"))
+                saver.restore(sess, "./checkpoints/rnn.ckpt")
+
+                # Get the placeholders from the graph by name
+                input_x = graph.get_operation_by_name("input_x").outputs[0]
+                # input_y = graph.get_operation_by_name("input_y").outputs[0]
+                dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+
+                # Tensors we want to evaluate
+                predictions = graph.get_operation_by_name("output/scores").outputs[0]
+
+                # Collect the predictions here
+                predict = sess.run(predictions, {input_x: x, dropout_keep_prob: 0.5})
+
+                return predict
 
 
 if __name__ == '__main__':
     db = MongodbStorage()
 
     TextRNN.train(db)
+    predicted_reactions = TextRNN.predict(
+        "This is just some sample post. I will try to use real posts later. Your salad is really disgusting!!!")
+
+    print(predicted_reactions)

@@ -18,7 +18,7 @@ class NeuralNetwork(ABC):
 
     @staticmethod
     @abstractmethod
-    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.1):
+    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3):
         """
         This method will start a new model and train it until either the required_accuracy is reached or the user stops
         training
