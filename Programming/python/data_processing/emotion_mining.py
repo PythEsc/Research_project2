@@ -21,11 +21,11 @@ class EmotionMiner:
 
         self.data_storage = data_storage
         self.nlp = StanfordCoreNLP('http://localhost:9000')
-        self.properties_pos = {'annotators': 'lemma', 'outputFormat': 'json'}
+        self.properties_lemma = {'annotators': 'lemma', 'outputFormat': 'json'}
 
-    def get_post_emotion_value(self, content: str):
+    def get_post_emotion_value(self, content: str) -> list:
         emotion_count_list = [0, 0, 0, 0, 0, 0, 0, 0]
-        output = self.nlp.annotate(content, properties=self.properties_pos)
+        output = self.nlp.annotate(content, properties=self.properties_lemma)
         for sent in output["sentences"]:
             for token in sent["tokens"]:
                 emotion_filter = {Emotion.COLL_ID: token["lemma"]}
@@ -33,6 +33,21 @@ class EmotionMiner:
                 if emotion_object is not None:
                     emotion_count_list = [sum(x) for x in zip(emotion_count_list, emotion_object.emotion)]
         return emotion_count_list
+
+    def get_words_emotion_value(self, content: str) -> list:
+        emotion_words = []
+        output = self.nlp.annotate(content, properties=self.properties_lemma)
+        for sent in output["sentences"]:
+            for token in sent["tokens"]:
+                emotion_filter = {Emotion.COLL_ID: token["lemma"]}
+                emotion_object = self.data_storage.select_single_emotion(emotion_filter)
+                if emotion_object is not None and sum(emotion_object.emotion) != 0:
+                    emotion_words.append(
+                        (token["originalText"],
+                         token["characterOffsetBegin"],
+                         token["characterOffsetEnd"],
+                         emotion_object.emotion))
+        return emotion_words
 
     def tag_comments_emotions_to_post(self):
         """
@@ -146,4 +161,3 @@ if __name__ == '__main__':
                                                               emotion_value=emotion_tuple[1] * 100))
 
         print(displayed_emotions)
-

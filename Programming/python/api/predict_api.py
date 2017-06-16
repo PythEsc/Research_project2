@@ -78,22 +78,37 @@ def __process_single_post(post):
     if not isinstance(post, str):
         abort(400, 'The parameter "post" needs to be of type str')
 
-    # Emotions
+    # ---------- Emotions ----------
+    # Post emotion
     emotion_list = emotion.get_post_emotion_value(post)
     emotions = {}
     for index, emotionname in enumerate(Emotion.EMOTION_TYPES):
         emotions[emotionname] = emotion_list[index]
 
-    # Sentiment
-    sentiments = sentiment.get_post_sentiment_value(post)
+    # Word emotion
+    emotion_words = emotion.get_words_emotion_value(post)
+    edited_emotion_words = []
+    for emotiontuple in emotion_words:
+        emotions_current_tuple = {}
+        for index, emotionname in enumerate(Emotion.EMOTION_TYPES):
+            emotions_current_tuple[emotionname] = emotiontuple[3][index]
+        edited_emotion_words.append((emotiontuple[0], emotiontuple[1], emotiontuple[2], emotions_current_tuple))
 
-    # Reactions
+    # ---------- Sentiment ----------
+    # Post sentiment
+    sentiments = sentiment.get_post_sentiment_value(post)
+    # Word sentiment
+    sentiment_words = sentiment.get_words_sentiment_value(post)
+
+    # ---------- Reactions ----------
     # TODO: Add the reaction_prediction
 
     # Create response
     response = dict(reactions={},
                     emotions=emotions,
-                    sentiment=sentiments)
+                    sentiment=sentiments,
+                    emotionWords=edited_emotion_words,
+                    sentimentWords=sentiment_words)
     return response
 
 

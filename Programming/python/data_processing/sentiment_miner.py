@@ -1,6 +1,7 @@
 import os
 import traceback
 
+import nltk
 from pycorenlp.corenlp import StanfordCoreNLP
 
 from importer.database.data_types import Post, Comment
@@ -75,6 +76,41 @@ class Sentimenter:
 
         sentiment_ratio = sentiment_counter / len(sentences)
         return sentiment_ratio
+
+    # TODO: This obviously is no good solution: 1. negation handling is lost 2. The sentiment of a whole sentence is
+    # not the sum of the single words (Try with "Your salad is awful")
+    def get_words_sentiment_value(self, content: str) -> list:
+        # Split the sentence into single tokens and build a new "content" in which each word is seperated by a dot
+        tokens = nltk.word_tokenize(content)
+        merged_tokens = ". ".join(tokens)
+
+        # Annotate this new content (in which each token will be recognized as sentence and hence annotated for its own)
+        output = self.nlp.annotate(merged_tokens, properties=self.properties_sentiment)
+
+        # Iterate over the sentences/tokens
+        sentences = output['sentences']
+        sentiment_words = []
+        for sentence in sentences:
+            sentiment = sentence['sentiment']
+
+            # If the sentiment is not neutral we've found a sentiment word
+            if sentiment != 'Neutral':
+                # We take the first token (the other should be a dot)
+                token = sentence["tokens"][0]
+
+                # We lookup the token in the original list of tokens to find its index and hence the number of manually
+                # inserted dots. This is necessary to modify the characterOffset
+                for index, token_from_list in enumerate(tokens):
+                    if token_from_list == token["originalText"]:
+                        break
+
+                sentiment_words.append(
+                    (token["originalText"],
+                     token["characterOffsetBegin"] - (index + 1),
+                     token["characterOffsetEnd"] - (index + 1),
+                     sentiment))
+
+        return sentiment_words
 
 
 if __name__ == '__main__':
