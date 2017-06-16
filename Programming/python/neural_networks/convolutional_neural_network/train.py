@@ -9,9 +9,9 @@ import tensorflow as tf
 # Data loading params
 from tensorflow.contrib import learn
 
-from convolutional_neural_network import data_helpers
-from convolutional_neural_network.text_cnn import TextCNN
 from importer.data_importer import DataImporter
+from neural_networks import data_helpers
+from neural_networks.convolutional_neural_network import TextCNN
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos",

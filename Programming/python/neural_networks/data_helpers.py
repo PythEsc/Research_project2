@@ -3,6 +3,7 @@ import re
 import numpy as np
 
 from importer.database.data_types import Post
+from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
 
 
@@ -67,40 +68,34 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             yield shuffled_data[start_index:end_index]
 
 
-def get_training_set(db: MongodbStorage):
-    reactions_right_list = ["LIKE", "LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
+def get_training_set(db: DataStorage, threshold: int = 1, use_likes: bool = False):
+    if use_likes:
+        reactions_right_list = ["LIKE", "LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
+    else:
+        reactions_right_list = ["LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
+
     data = []
     reactions_matrix = []
 
-    post_filter = {Post.COLL_MESSAGE: {'$exists': True}}
+    post_filter = {Post.COLL_MESSAGE: {'$exists': True}, Post.COLL_REACTIONS: {'$exists': True}}
     for post in db.iterate_single_post(post_filter):
         data.append(post.message)
         reactions_matrix.append(post.reactions)
-    [cleaned_posts, new_reactions_matrix] = [[], []]
+    [filtered_posts, new_reactions_matrix] = [[], []]
 
-    for i, post in enumerate(data):
-        reactions = reactions_matrix[i]
+    for post, reactions in zip(data, reactions_matrix):
         reaction_sum = 0
-        try:
-            if type(reactions) is list:
-                integer_reactions = [int(numeric_string) for numeric_string in reactions]
-                reaction_sum += sum(integer_reactions)
-            else:
-                for key in reactions_right_list:
-                    reaction_sum += reactions[key]
-        except Exception:
-            continue
-        if np.math.isnan(reaction_sum) or reaction_sum < 5:
+        for key in reactions_right_list:
+            reaction_sum += reactions[key]
+
+        if reaction_sum < threshold:
             continue
 
         new_reactions = []
-        if type(reactions) is list:
-            for reaction in reactions:
-                new_reactions.append(int(reaction) / reaction_sum)
-        else:
-            for key in reactions_right_list:
-                new_reactions.append(reactions[key] / reaction_sum)
+        for key in reactions_right_list:
+            new_reactions.append(reactions[key] / reaction_sum)
 
-        cleaned_posts.append(post)
+        filtered_posts.append(post)
         new_reactions_matrix.append(new_reactions)
-    return [cleaned_posts, new_reactions_matrix]
+
+    return [filtered_posts, new_reactions_matrix]

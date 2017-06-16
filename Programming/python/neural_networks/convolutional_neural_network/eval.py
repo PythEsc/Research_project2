@@ -8,11 +8,11 @@ import tensorflow as tf
 from sklearn import metrics
 from tensorflow.contrib import learn
 
+from importer.data_importer import DataImporter
 # Data Parameters
 # Parameters
 # ==================================================
-from convolutional_neural_network import data_helpers
-from importer.data_importer import DataImporter
+from neural_networks import data_helpers
 
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos",
                        "Data source for the positive data.")
