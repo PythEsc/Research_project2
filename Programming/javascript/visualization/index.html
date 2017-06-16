@@ -1,5 +1,10 @@
 <html>
     <head>
+        <!-- Link to latest version of D3.js and other dependencies needed for the plotting library--->
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+
+        <!--Script for requesting the data -->
         <script type="text/javascript">
             function processInput(){
                 var form = document.getElementById("form");
@@ -8,10 +13,18 @@
                 data[text] = form.content;
                 //Prepare the connection
                 var xhr = new XMLHttpRequest();
-                xhr.open("POST", "localhost:8080" ); //TODO: Adjust URL to correct port
+                xhr.open("POST", "http://localhost:5000/predict/single" );
                 xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-
-                xhr.send(JSON.stringify())
+                xhr.responseType = 'json';
+                xhr.onload = function() { //Handles the response by the server
+                    var status = xhr.status;
+                    if (status == 200) {
+                        alert('Something went wrong: ' + xhr.response);
+                    } else {
+                        //TODO: Initialize the visualization.
+                    }
+                };
+                xhr.send(JSON.stringify(data));
 
             }
         </script>
