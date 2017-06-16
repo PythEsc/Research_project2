@@ -73,6 +73,8 @@ class TextRNN(NeuralNetwork):
 
     @staticmethod
     def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3):
+        # TODO: Add some code to save/restore the model. At the moment we always have to start from the beginning when
+        # training is stopped
         x_text, y = get_training_set(db)
 
         # Build vocabulary
@@ -183,6 +185,7 @@ class TextRNN(NeuralNetwork):
 
     @staticmethod
     def predict(content: str) -> list:
+        # TODO: This is not correct and needs to be fixed
         # Map data into vocabulary
         vocab_path = os.path.join("./checkpoints", "vocab")
         vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
