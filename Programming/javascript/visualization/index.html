@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <script type="text/javascript">
+            function processInput(){
+                var form = document.getElementById("form");
+                var data = {};
+
+                data[text] = form.content;
+                //Prepare the connection
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "localhost:8080" ); //TODO: Adjust URL to correct port
+                xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+
+                xhr.send(JSON.stringify())
+
+            }
+        </script>
+    </head>
+    <body>
+        <div id="title">
+            <h1>Visualization</h1>
+        </div>
+        <div>
+            <form id="form">
+                <textarea placeholder="input a post..." rows="6" name="content"></textarea>
+                <button action="POST" value="">Submit</button>
+            </form>
+        </div>
+    </body>
+</html>
