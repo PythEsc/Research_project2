@@ -24,15 +24,6 @@ class NegationHandler:
                          [0, 1, 0, 0, 0, 0, 0, 1],  # Surprise
                          [0, 0, 1, 0, 0, 0, 1, 0]]  # Trust
 
-    [0|0|0|0|1|0|0|0],
-    [0|0|0|1|0|0|1|0],
-    [0|0|0|0|1|0|0|1],
-    [0|0|0|0|1|0|0|1],
-    [1|0|1|1|0|1|0|0],
-    [0|0|0|0|1|0|0|0],
-    [0|1|0|0|0|0|0|1],
-    [0|0|1|0|0|0|1|0]
-
     def __init__(self, data_storage: DataStorage):
         """
         Const
@@ -67,6 +58,7 @@ class NegationHandler:
                 continue
 
             sentence_emotion = [0] * len(Emotion.EMOTION_TYPES)
+            add_to_database = False
 
             index_to_continue = 0
             tokens = sentence["tokens"]
@@ -85,6 +77,7 @@ class NegationHandler:
                         if next_token_emotion is not None:
                             negated_emotion = self.__get_negated_emotions(next_token_emotion)
                             sentence_emotion = [x + y for x, y in zip(negated_emotion, sentence_emotion)]
+                            add_to_database = True
                             break
                         else:
                             next_token_pos = next_token["pos"]
@@ -98,9 +91,11 @@ class NegationHandler:
                     token_emotion = db.select_single_emotion(token["originalText"])
                     if token_emotion is not None:
                         sentence_emotion = [x + y for x, y in zip(token_emotion.emotion, sentence_emotion)]
+                        add_to_database = True
 
             total_emotion = [x + y for x, y in zip(sentence_emotion, total_emotion)]
-            db.insert_sentence(Sentence.create_from_single_values(sentences[sent_index], sentence_emotion))
+            if add_to_database:
+                db.insert_sentence(Sentence.create_from_single_values(sentences[sent_index], sentence_emotion))
 
         return total_emotion
 
