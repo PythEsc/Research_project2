@@ -78,7 +78,5 @@ class TextCNN(object):
             self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
-        print(type(self.scores.eval()))
-        print(type(self.input_y.eval()))
         with tf.name_scope("accuracy"):
-            self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))))
+            self.accuracy = tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores)), name="accuracy")
