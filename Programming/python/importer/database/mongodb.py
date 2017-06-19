@@ -133,7 +133,7 @@ class MongodbStorage(DataStorage):
             counter += 1
             if print_progress:
                 print("\r%.2f%%" % (counter / size * 100), end='')
-            return Emotion(entry)
+            yield Emotion(entry)
         cursor.close()
         if print_progress:
             print("\n")
