@@ -1,14 +1,14 @@
+data/Filtered/Sainsbury/
+data/Filtered/Tesco/
+data/Unzipped/
 Documents/Project Plan/Project Plan.aux
 Documents/Project Plan/Project Plan.log
 Documents/Project Plan/Project Plan.synctex.gz
 Documents/Project Plan/Project Plan.bbl
 Documents/Project Plan/Project Plan.blg
 Documents/Project Plan/Project Plan.pdf
-Programming/Unzipped
-Programming/training
-data/Unzipped/
-*.pyc
-Programming/python/recurrent_neural_network/checkpoints/
-data/Filtered/Sainsbury/*
-data/Filtered/Tesco/*
-.idea/*
+Programming/Unzipped/
+Programming/training/
+Programming/python/neural_networks/convolutional_neural_network/checkpoints/
+Programming/python/neural_networks/recurrent_neural_network/checkpoints/
+\.idea/
