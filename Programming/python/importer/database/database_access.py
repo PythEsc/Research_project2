@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from importer.database.data_types import Post, Comment, Emotion
+from importer.database.data_types import Post, Comment, Emotion, Sentence
 
 
 class DataStorage(ABC):
@@ -118,7 +118,7 @@ class DataStorage(ABC):
         pass
 
     @abstractmethod
-    def iterate_single_emotion(self, filter: dict, print_progress: bool = True) -> Emotion:
+    def iterate_single_emotion(self, filter: dict, print_progress: bool = True) -> list:
         """
         Iterator that returns a single Emotion object with each iteration
 
@@ -128,11 +128,42 @@ class DataStorage(ABC):
         """
         pass
 
+    @abstractmethod
     def select_single_emotion(self, filter: dict) -> Emotion:
         """
         Returns a single emotion matching the given filter
 
         :param filter: The filter to search for 
         :return: A single Emotion object
+        """
+        pass
+
+    @abstractmethod
+    def insert_sentence(self, sentence: Sentence):
+        """
+        Inserts a new sentence into the data
+
+        :param sentence: The new sentence
+        """
+        pass
+
+    @abstractmethod
+    def select_single_sentence(self, filter: dict) -> Sentence:
+        """
+        Returns a single sentence matching the given filter
+
+        :param filter: The filter to search for
+        :return: A single Sentence object
+        """
+        pass
+
+    @abstractmethod
+    def iterate_single_sentence(self, filter: dict, print_progress: bool = True) -> list:
+        """
+        Iterator that returns a single Sentence object with each iteration
+
+        :param print_progress: If true the progress of iterating will be printed
+        :param filter: The filter to search for
+        :return: A Sentence object with each iteration
         """
         pass
