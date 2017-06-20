@@ -7,10 +7,7 @@ import tensorflow as tf
 from tensorflow.contrib import learn
 
 from importer.database.database_access import DataStorage
-from importer.database.mongodb import MongodbStorage
-from neural_networks.data_helpers import get_training_set, batch_iter
 from neural_networks.neural_network import NeuralNetwork
-from pre_trained_embeddings.word_embeddings import WordEmbeddings
 
 
 class TextCNN(NeuralNetwork):
@@ -105,11 +102,40 @@ class TextCNN(NeuralNetwork):
         pass
 
     @staticmethod
-    def predict(content: str) -> list:
+    def predict(content: list) -> list:
         """
         This method predicts the Facebook reactions for a single post
 
-        :param content: The content of a single Facebook post
-        :return: A list containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
+        :param content: The content of a single Facebook post but as a list ["..text..."]. This can also be used for the
+                        batch prediction later on. 
+        :return: A list of lists containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
         """
-        pass
+        # CHECKPOINT NEEDS TO BE LATEST CHECKPOINT YOU TRAINED
+        checkpoint_for_evaluation = "runs/1497955024/checkpoints/"
+
+        checkpoint_file = tf.train.latest_checkpoint(checkpoint_for_evaluation)
+        vocab_path = os.path.join(checkpoint_for_evaluation, "..", "vocab")
+        vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
+        content = np.array(list(vocab_processor.transform(content)))
+        graph = tf.Graph()
+        with graph.as_default():
+            session_conf = tf.ConfigProto(
+                allow_soft_placement=True,
+                log_device_placement=False)
+            sess = tf.Session(config=session_conf)
+            with sess.as_default():
+                # Load the saved meta graph and restore variables
+                saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
+                saver.restore(sess, checkpoint_file)
+
+                # Get the placeholders from the graph by name
+                input_x = graph.get_operation_by_name("input_x").outputs[0]
+                # input_y = graph.get_operation_by_name("input_y").outputs[0]
+                dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+
+                # Tensors we want to evaluate
+                predictions = graph.get_operation_by_name("output/scores").outputs[0]
+
+                # Collect the predictions here
+                result = sess.run(predictions, {input_x: content, dropout_keep_prob: 1})
+                return result

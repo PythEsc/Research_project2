@@ -8,11 +8,12 @@ import tensorflow as tf
 from sklearn import metrics
 from tensorflow.contrib import learn
 
-from importer.data_importer import DataImporter
 # Data Parameters
 # Parameters
 # ==================================================
+from importer.database.mongodb import MongodbStorage
 from neural_networks import data_helpers
+from neural_networks.data_helpers import get_training_set
 
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos",
                        "Data source for the positive data.")
@@ -21,7 +22,7 @@ tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity
 
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size", 32, "Batch Size (default: 64)")
-tf.flags.DEFINE_string("checkpoint_dir", "runs/1495884681/checkpoints/", "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir", "runs/1497955024/checkpoints/", "Checkpoint directory from training run")
 tf.flags.DEFINE_boolean("eval_train", False, "Evaluate on all training data")
 
 # Misc Parameters
@@ -36,13 +37,9 @@ for attr, value in sorted(FLAGS.__flags.items()):
 print("")
 
 # CHANGE THIS: Load data. Load your own data here
-importer_sainsbury = DataImporter("../../../data/Filtered/Sainsbury.zip", "../../../data/Unzipped/Sainsbury")
-importer_sainsbury.load()
-x_text, y = importer_sainsbury.prepare_data_for_CNN()
+db = MongodbStorage()
+x_text, y = get_training_set(db)
 # if FLAGS.eval_train:
-# x_raw, y_test = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
-# y_test = np.argmax(y_test, axis=1)
-# else:
 shuffle_indices = np.random.permutation(np.arange(len(y)))
 x_shuffled = np.copy(x_text)
 y_shuffled = np.copy(y)

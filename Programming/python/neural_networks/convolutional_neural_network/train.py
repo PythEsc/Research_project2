@@ -9,7 +9,6 @@ import tensorflow as tf
 # Data loading params
 from tensorflow.contrib import learn
 
-from importer.data_importer import DataImporter
 from importer.database.mongodb import MongodbStorage
 from neural_networks import data_helpers
 from neural_networks.convolutional_neural_network.text_cnn import TextCNN
