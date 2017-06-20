@@ -1,7 +1,19 @@
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import learn
+
+from importer.database.database_access import DataStorage
+from importer.database.mongodb import MongodbStorage
+from neural_networks.data_helpers import get_training_set, batch_iter
+from neural_networks.neural_network import NeuralNetwork
+from pre_trained_embeddings.word_embeddings import WordEmbeddings
 
 
-class TextCNN(object):
+class TextCNN(NeuralNetwork):
     """
     A CNN for text classification.
     Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
@@ -9,7 +21,7 @@ class TextCNN(object):
 
     def __init__(
             self, sequence_length, num_classes, vocab_size,
-            embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
+            embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, embedding=None):
         # Placeholders for input, output and dropout
         self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
         self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
@@ -20,11 +32,16 @@ class TextCNN(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            self.embedding_vector = tf.Variable(
-                tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                name="embedding_vector")
-            self.embedded_chars = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
-            self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
+            if embedding is None:
+                self.embedding_vector = tf.Variable(
+                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                    name='embedding_vector')
+                self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
+            else:
+                self.embedding_vector = tf.Variable(embedding, name='embedding_vector')
+                self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
+
+            self.embedded_chars_expanded = tf.expand_dims(self.embedding_layer, -1)
 
         # Create a convolution + maxpool layer for each filter size
         pooled_outputs = []
@@ -79,4 +96,20 @@ class TextCNN(object):
 
         # Accuracy
         with tf.name_scope("accuracy"):
-            self.accuracy = tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores)), name="accuracy")
+            self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))), name="accuracy")
+
+    @staticmethod
+    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3):
+        # TODO: Add some code to save/restore the model. At the moment we always have to start from the beginning when
+        # training is stopped
+        pass
+
+    @staticmethod
+    def predict(content: str) -> list:
+        """
+        This method predicts the Facebook reactions for a single post
+
+        :param content: The content of a single Facebook post
+        :return: A list containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
+        """
+        pass
