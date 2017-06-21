@@ -96,7 +96,7 @@ class TextCNN(NeuralNetwork):
             self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))), name="accuracy")
 
     @staticmethod
-    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3):
+    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
         # TODO: Add some code to save/restore the model. At the moment we always have to start from the beginning when
         # training is stopped
         pass
