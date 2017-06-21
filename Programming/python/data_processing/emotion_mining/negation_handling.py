@@ -40,9 +40,11 @@ class NegationHandler:
         total_emotion = [0] * len(Emotion.EMOTION_TYPES)
 
         output = self.nlp.annotate(content, self.properties_pos)
+        if not isinstance(output, dict):
+            return
         sentences = []
 
-        for sentence in output["sentences"]:
+        for sentence in output.get("sentences", []):
             beginn = sentence["tokens"][0]
             end = sentence["tokens"][-1]
 
@@ -51,7 +53,7 @@ class NegationHandler:
             sentence_splitted = content[start_index: end_index]
             sentences.append(sentence_splitted)
 
-        for sent_index, sentence in enumerate(output["sentences"]):
+        for sent_index, sentence in enumerate(output.get("sentences", [])):
             lookedup_sentence = db.select_single_sentence({Sentence.COLL_CONTENT: sentences[sent_index]})
             if lookedup_sentence is not None:
                 total_emotion = [x + y for x, y in zip(lookedup_sentence.emotion, total_emotion)]
