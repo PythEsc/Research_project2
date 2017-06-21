@@ -37,7 +37,7 @@ class WordEmbeddings():
         :return: vocab, embd. Vocab is a list of the vocabulary. Embd is a numpy array of the embedding, where
                               each row corresponds to a word in vocab.
         """
-        print('\nLoading GloVe vectors from {} ...'.format(filepath))
+        print('Loading GloVe vectors from {} ...'.format(filepath))
         vocab = []
         embd = []
         with open(filepath, 'r', encoding='utf8') as file:
@@ -56,7 +56,7 @@ class WordEmbeddings():
         return self.vocab, self.embd
 
     def fit_extra(self, data,
-                  min_count=1, word_ngrams=1, minn=3, maxn=6, learning_rate=0.1, n_epochs=1, n_threads=8):
+                  min_count=1, word_ngrams=5, minn=3, maxn=6, learning_rate=0.05, n_epochs=100, n_threads=8):
         """
         
         :param data: The list of posts
