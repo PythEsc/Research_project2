@@ -137,8 +137,10 @@
                 });
 
                 var svg = d3.select("#piechart")
-                    .append("svg")
+                    .append("svg").attr("class", "donutChart")
                     .append("g")
+
+
 
                 svg.append("g")
                     .attr("class", "slices");
