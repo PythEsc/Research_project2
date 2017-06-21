@@ -1,8 +1,8 @@
-.bar{
+.reactionsBar{
     fill: steelblue;
 }
 
-.bar:hover{
+.reactionsBar:hover{
     fill: brown;
 }
 
@@ -15,4 +15,11 @@
     fill: none;
     stroke: #000;
     shape-rendering: crispEdges;
+}
+
+div {
+    border-width: 1px;
+    border-style: solid;
+    border-color: darkgrey;
+    margin: 2px;
 }

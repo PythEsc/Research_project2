@@ -36,10 +36,16 @@
             <h1>Visualization</h1>
         </div>
         <div>
-            <form id="form">
+            <form id="form" width="100%" height="300px">
                 <textarea placeholder="input a post..." rows="6" name="content"></textarea>
                 <button action="POST" value="">Submit</button>
             </form>
+        </div>
+        <div id="reactions">
+        <h2>Reaction Distribution</h2>
+        </div>
+        <div id="piechart">
+
         </div>
 
             <script>
@@ -70,7 +76,8 @@
 
 
                 // add the SVG element
-                var svg = d3.select("body").append("svg")
+
+                var svgReactions = d3.select("#reactions").append("svg")
                     .attr("width", width + margin.left + margin.right)
                     .attr("height", height + margin.top + margin.bottom)
                     .append("g")
@@ -93,10 +100,8 @@
                     // scale the range of the data
                     x.domain(Object.keys(data.reactions));
                     y.domain([0, d3.max(values, function(d) { return d.frequ; })]);
-
-                    console.log("Window: " + d3.max(values, function(d) { return d.frequ; }))
                     // add axis
-                    svg.append("g")
+                    svgReactions.append("g")
                         .attr("class", "x axis")
                         .attr("transform", "translate(0," + height + ")")
                         .call(xAxis)
@@ -106,7 +111,7 @@
                         .attr("dy", "-.55em")
                         .attr("transform", "rotate(-90)" );
 
-                    svg.append("g")
+                    svgReactions.append("g")
                         .attr("class", "y axis")
                         .call(yAxis)
                         .append("text")
@@ -118,24 +123,21 @@
 
 
                     // Add bar chart
-                    svg.selectAll("bar")
+                    svgReactions.selectAll("bar")
                         .data(values)
                         .enter().append("rect")
-                        .attr("class", "bar")
+                        .attr("class", "reactionsBar")
                         .attr("x", function(d) {
                             return x(d.label); })
                         .attr("width", x.rangeBand())
-                        .attr("y", function(d) { console.log(d)
-                            if(isNaN(d.frequ))
-                                console.log("NO NUMBER?")
-                            return y(d.frequ); })
+                        .attr("y", function(d) { return y(d.frequ); })
                         .attr("height", function(d) { return height - y(d.frequ);
                         });
 
                 });
 
-
                 
+
 
             </script>
 
