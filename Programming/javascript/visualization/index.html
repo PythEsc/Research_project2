@@ -78,10 +78,11 @@
                 d3.json("data.json", function(error, data) {
 
 
-
+                    window.alert(Object.keys(data.reactions)); //TODO: remove debug statements
+                    window.alert(typeof data.reactions);
                     // scale the range of the data
-                    x.domain(data.map(function(d) { return d.Letter; }));
-                    y.domain([0, d3.max(data, function(d) { return d.Freq; })]);
+                    x.domain(Object.keys(data.reactions));
+                    y.domain([0, d3.max(data.reactions, function(d) { return data.reactions[d]; })]);
 
                     // add axis
                     svg.append("g")
@@ -113,7 +114,9 @@
                         .attr("x", function(d) { return x(d.Letter); })
                         .attr("width", x.rangeBand())
                         .attr("y", function(d) { return y(d.Freq); })
-                        .attr("height", function(d) { return height - y(d.Freq); });
+                        .attr("height", function(d) { //return height - y(d.Freq);
+                            return 10;
+                        });
 
                 });
 

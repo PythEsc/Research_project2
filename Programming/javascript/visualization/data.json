@@ -1,102 +1,64 @@
-[
-  {
-    "Letter": "A",
-    "Freq": 20
+{
+  "emotionWords": [
+    [
+      "disgusting",
+      14,
+      24,
+      {
+        "ANGER": 1,
+        "ANTICIPATION": 0,
+        "DISGUST": 1,
+        "FEAR": 1,
+        "JOY": 0,
+        "SADNESS": 1,
+        "SURPRISE": 0,
+        "TRUST": 0
+      }
+    ],
+    [
+      "hate",
+      35,
+      39,
+      {
+        "ANGER": 1,
+        "ANTICIPATION": 0,
+        "DISGUST": 1,
+        "FEAR": 1,
+        "JOY": 0,
+        "SADNESS": 1,
+        "SURPRISE": 0,
+        "TRUST": 0
+      }
+    ]
+  ],
+  "emotions": {
+    "ANGER": 2,
+    "ANTICIPATION": 0,
+    "DISGUST": 2,
+    "FEAR": 2,
+    "JOY": 0,
+    "SADNESS": 2,
+    "SURPRISE": 0,
+    "TRUST": 0
   },
-  {
-    "Letter" : "B",
-    "Freq": 12
+  "reactions": {
+    "Like" : 2,
+    "Angry" : 10,
+    "Sad" : 8
   },
-  {
-    "Letter" : "C",
-    "Freq": 47
-  },
-  {
-    "Letter" : "D",
-    "Freq": 34
-  },
-  {
-    "Letter" : "E",
-    "Freq" : 54
-  },
-  {
-    "Letter" : "F",
-    "Freq" : 21
-  },
-  {
-    "Letter" : "G",
-    "Freq" : 57
-  },
-  {
-    "Letter" : "H",
-    "Freq" : 31
-  },
-  {
-    "Letter" : "I",
-    "Freq" : 17
-  },
-  {
-    "Letter" : "J",
-    "Freq" : 5
-  },
-  {
-    "Letter" : "K",
-    "Freq" : 23
-  },
-  {
-    "Letter" : "L",
-    "Freq" : 39
-  },
-  {
-    "Letter" : "M",
-    "Freq" : 29
-  },
-  {
-    "Letter" : "N",
-    "Freq" : 33
-  },
-  {
-    "Letter" : "O",
-    "Freq" : 18
-  },
-  {
-    "Letter" : "P",
-    "Freq" : 35
-  },
-  {
-    "Letter" : "Q",
-    "Freq" : 11
-  },
-  {
-    "Letter" : "R",
-    "Freq" : 45
-  },
-  {
-    "Letter" : "S",
-    "Freq" : 43
-  },
-  {
-    "Letter" : "T",
-    "Freq" : 28
-  },
-  {
-    "Letter" : "U",
-    "Freq" : 26
-  },
-  {
-    "Letter" : "V",
-    "Freq" : 30
-  },
-  {
-    "Letter" : "X",
-    "Freq" : 5
-  },
-  {
-    "Letter" : "Y",
-    "Freq" : 4
-  },
-  {
-    "Letter" : "Z",
-    "Freq" : 2
-  }
-]
+  "sentiment": -1.0,
+  "sentimentWords": [
+    [
+      "disgusting",
+      13,
+      23,
+      "Negative"
+    ],
+    [
+      "hate",
+      35,
+      39,
+      "Negative"
+    ]
+  ]
+}
