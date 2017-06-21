@@ -12,3 +12,5 @@ Programming/training/
 Programming/python/neural_networks/convolutional_neural_network/checkpoints/
 Programming/python/neural_networks/recurrent_neural_network/checkpoints/
 \.idea/
+*.pyc
+Programming/python/pre_trained_embeddings/glove/glove*
