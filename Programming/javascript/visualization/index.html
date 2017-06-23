@@ -45,7 +45,7 @@
         <h2>Reaction Distribution</h2>
         </div>
         <div id="piechart">
-
+            <button class="randomize">Refresh!</button>
         </div>
 
             <script>
@@ -170,11 +170,31 @@
                 svg.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
                 var key = function(d){ return d.data.label; };
+                console.log(key);
 
                 //Define the emotions and their colours.
                 var color = d3.scale.ordinal()
                     .domain(["ANGER", "ANTICIPATION", "DISGUST", "FEAR", "JOY", "SADNESS", "SURPRISE", "TRUST"])
                     .range(["#d62222", "#ffff00", "#b266ff", "#00e9ff", "#1ae024", "#0a5866", "#ffdf3f", "#8c3a6f"]);
+
+                d3.select(".randomize")
+                    .on("click", function(){
+                        d3.json("data.json", function(error, data) {
+
+                            //Convert the data to an easier to use format
+                            var emotions = [];
+
+                            j = 0;
+                            for(var i in data.emotions){
+                                emotions[j] = {label : i, value : data.emotions[i]};
+                                j++;
+
+                            }
+                            //Update the Donut Chart
+                            change(emotions);
+                        });
+
+                    });
 
                 //Sets the emotions to random data.
                 function randomData (){
@@ -184,10 +204,6 @@
                     });
                 }
 
-                function readData(jsonData){
-                    console.log(jsonData);
-
-                }
 
                 function initDonut(){
                     var labels = color.domain();
@@ -200,6 +216,7 @@
                 change(initDonut());
 
 
+                //TODO: Use this function in order to update the donut?
                 function change(data) {
 
                     /* ------- PIE SLICES -------*/
