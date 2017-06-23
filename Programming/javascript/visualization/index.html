@@ -149,8 +149,8 @@
                 svg.append("g")
                     .attr("class", "lines");
 
-                var width = 960,
-                    height = 450,
+                var width = 480, //These are the canvas width and height, donut applies best fit (fill).
+                    height = 225,
                     radius = Math.min(width, height) / 2;
 
                 var pie = d3.layout.pie()
@@ -171,10 +171,12 @@
 
                 var key = function(d){ return d.data.label; };
 
+                //Define the emotions and their colours.
                 var color = d3.scale.ordinal()
-                    .domain(["Lorem ipsum", "dolor sit", "amet", "consectetur", "adipisicing", "elit", "sed", "do", "eiusmod", "tempor", "incididunt"])
-                    .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+                    .domain(["ANGER", "ANTICIPATION", "DISGUST", "FEAR", "JOY", "SADNESS", "SURPRISE", "TRUST"])
+                    .range(["#d62222", "#ffff00", "#b266ff", "#00e9ff", "#1ae024", "#0a5866", "#ffdf3f", "#8c3a6f"]);
 
+                //Sets the emotions to random data.
                 function randomData (){
                     var labels = color.domain();
                     return labels.map(function(label){
@@ -182,12 +184,20 @@
                     });
                 }
 
-                change(randomData());
+                function readData(jsonData){
+                    console.log(jsonData);
 
-                d3.select(".randomize")
-                    .on("click", function(){
-                        change(randomData());
+                }
+
+                function initDonut(){
+                    var labels = color.domain();
+                    return labels.map(function(label){
+                        return { label: label, value: 0 }
                     });
+                }
+
+                //Initialization (Empty Donut).
+                change(initDonut());
 
 
                 function change(data) {
