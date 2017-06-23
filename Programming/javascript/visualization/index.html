@@ -11,7 +11,7 @@
     <h1>Visualization</h1>
 </div>
 <div>
-    <textarea placeholder="input a post..." rows="6" name="content"></textarea>
+    <textarea placeholder="input a post..." rows="6" name="content" class="postContent" id="input"></textarea>
     <button class="Submit">Submit</button>
 </div>
 <div id="reactions">
@@ -22,12 +22,15 @@
 </div>
 
 <script>
-    //Function for requesting the json input from the server. //TODO: Actually test and use this.
-    function processInput() {
-        var form = document.getElementById("form");
-        var data = {};
 
-        data[text] = form.content;
+    d3.select(".Submit").on("click", function () {
+        //Retrieve the text from the textfield.
+        var text = document.getElementById("input").value;
+
+
+
+
+        var data = { "post": [text]}
         //Prepare the connection
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "http://localhost:5000/predict/single");
@@ -41,12 +44,9 @@
                 //TODO: Initialize the visualization.
             }
         };
+
+
         xhr.send(JSON.stringify(data));
-
-    }
-
-    d3.select(".Submit").on("click", function () {
-        console.log("hello?");
     })
 
 
@@ -197,7 +197,7 @@
 
                 }
                 //Update the Donut Chart
-                change(emotions);
+                updateDonut(emotions);
             });
 
         });
@@ -210,7 +210,7 @@
         });
     }
 
-
+    //Initializes an empty donut. TODO: Maybe remove this?
     function initDonut() {
         var labels = color.domain();
         return labels.map(function (label) {
@@ -219,11 +219,11 @@
     }
 
     //Initialization (Empty Donut).
-    change(initDonut());
+    updateDonut(initDonut());
 
 
-    //TODO: Use this function in order to update the donut?
-    function change(data) {
+    //Updates the donut
+    function updateDonut(data) {
 
         /* ------- PIE SLICES -------*/
         var slice = svg.select(".slices").selectAll("path.slice")
