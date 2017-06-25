@@ -38,3 +38,15 @@ polyline{
     stroke-width: 2px;
     fill: none;
 }
+
+#reactions{
+    width: 300px;
+    height: 400px;
+    float:left;
+}
+
+#piechart{
+    width: 500px;
+    height: 400px;
+    float:left;
+}
