@@ -30,7 +30,7 @@
 
 
 
-        var data = { "post": [text]}
+        var data = { "post": text}
         //Prepare the connection
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "http://localhost:5000/predict/single");
@@ -40,8 +40,12 @@
             var status = xhr.status;
             if (status == 200) {
                 alert('Something went wrong: ' + xhr.response);
+                console.log(xhr.response)
+                var response = xhr.response;
+                console.log("Received response: " + response);
             } else {
-                //TODO: Initialize the visualization.
+
+                alert('Something went wrong: ' + xhr.response);
             }
         };
 
