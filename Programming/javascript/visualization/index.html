@@ -43,6 +43,18 @@
                 console.log(xhr.response)
                 var response = xhr.response;
                 console.log("Received response: " + response);
+
+                //Update the emotions
+                var emotions = [];
+
+                j = 0;
+                for (var i in data.emotions) {
+                    emotions[j] = {label: i, value: data.emotions[i]};
+                    j++;
+
+                }
+                //Update the Donut Chart
+                updateDonut(emotions);
             } else {
 
                 alert('Something went wrong: ' + xhr.response);
@@ -79,7 +91,6 @@
 
 
     // add the SVG element
-
     var svgReactions = d3.select("#reactions").append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
