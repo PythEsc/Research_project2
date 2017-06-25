@@ -1,3 +1,6 @@
+import hashlib
+
+
 class Post:
     """
     Holder class that contains the data of one (processed) facebook post
@@ -31,7 +34,8 @@ class Post:
         for key, value in post.items():
             assert key in self.VALID_COLUMNS, "Post contains invalid key: '{key}'".format(key=key)
             assert isinstance(value, (
-                str, dict, list, bool, float)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'".format(
+                str, dict, list, bool,
+                float)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'".format(
                 key=key,
                 value=value)
 
@@ -264,3 +268,62 @@ class Emotion:
     @property
     def emotion(self) -> list:
         return self.data[Emotion.COLL_EMOTION]
+
+
+class Sentence:
+    """
+    Holder class that contains the data of one sentence for a word
+    """
+    COLL_ID = "_id"
+    COLL_CONTENT = "content"
+    COLL_EMOTION = "emotion"
+
+    VALID_COLUMNS = [COLL_ID, COLL_CONTENT, COLL_EMOTION]
+    MANDATORY_COLUMNS = [COLL_ID, COLL_CONTENT, COLL_EMOTION]
+
+    def __init__(self, structure: dict):
+        self.__check_sentence(structure)
+        self.data = structure
+
+    def __check_sentence(self, sentence: dict):
+        """
+        Check that the dictionary can be parsed to a valid sentence (that it contains all the necessary data and no data that is invalid)
+
+        :param sentence: The dictionary that contains the sentence's data
+        """
+        for key, value in sentence.items():
+            assert key in self.VALID_COLUMNS, "Sentence contains invalid key: '{key}'".format(key=key)
+            assert isinstance(value,
+                              (str, list)), "Sentence invalid. The entry for the key '{key}' is invalid: '{value}'" \
+                .format(key=key, value=value)
+
+        for key in self.MANDATORY_COLUMNS:
+            assert key in sentence, "Mandatory key missing in sentence: '{key}'".format(key=key)
+
+    @staticmethod
+    def create_from_single_values(sentence: str, emotions: list):
+        """
+        Creates a sentence object from single sentence values
+
+        :param sentence: The sentence's content
+        :param emotions: The emotions list
+        :return: A sentence object
+        """
+
+        data = {Sentence.COLL_ID: hashlib.md5(sentence.encode('utf-8')).hexdigest(),
+                Sentence.COLL_CONTENT: sentence,
+                Sentence.COLL_EMOTION: emotions}
+
+        return Sentence(data)
+
+    @property
+    def id(self) -> str:
+        return self.data[Sentence.COLL_ID]
+
+    @property
+    def emotion(self) -> list:
+        return self.data[Sentence.COLL_EMOTION]
+
+    @property
+    def content(self) -> str:
+        return self.data[Sentence.COLL_CONTENT]

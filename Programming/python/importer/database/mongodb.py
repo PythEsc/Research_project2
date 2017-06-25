@@ -1,6 +1,6 @@
 import pymongo
 
-from importer.database.data_types import Post, Comment, Emotion
+from importer.database.data_types import Post, Comment, Emotion, Sentence
 from importer.database.database_access import DataStorage
 
 
@@ -9,6 +9,7 @@ class MongodbStorage(DataStorage):
     TABLE_POSTS = "posts"
     TABLE_COMMENTS = "comments"
     TABLE_EMOTION = "emotion"
+    TABLE_SENTENCE = "sentence"
 
     def __init__(self, host="localhost", port=27017, database="research_project"):
         self.client = pymongo.MongoClient(host=host, port=port)
@@ -123,7 +124,7 @@ class MongodbStorage(DataStorage):
         comment_collection = self.db[MongodbStorage.TABLE_EMOTION]
         comment_collection.insert_one(emotion.data)
 
-    def iterate_single_emotion(self, filter: dict, print_progress: bool = True) -> Emotion:
+    def iterate_single_emotion(self, filter: dict, print_progress: bool = True) -> list:
         emotion_collection = self.db[MongodbStorage.TABLE_EMOTION]
         cursor = emotion_collection.find(filter=filter, no_cursor_timeout=True).batch_size(100)
 
@@ -133,7 +134,7 @@ class MongodbStorage(DataStorage):
             counter += 1
             if print_progress:
                 print("\r%.2f%%" % (counter / size * 100), end='')
-            return Emotion(entry)
+            yield Emotion(entry)
         cursor.close()
         if print_progress:
             print("\n")
@@ -142,3 +143,31 @@ class MongodbStorage(DataStorage):
         emotion_collection = self.db[MongodbStorage.TABLE_EMOTION]
         result = emotion_collection.find_one(filter=filter, no_cursor_timeout=True)
         return Emotion(result) if result is not None else None
+
+    ###########################################################################
+    # Sentence-methods
+    ###########################################################################
+
+    def select_single_sentence(self, filter: dict) -> Sentence:
+        sentence_collection = self.db[MongodbStorage.TABLE_SENTENCE]
+        result = sentence_collection.find_one(filter=filter, no_cursor_timeout=True)
+        return Sentence(result) if result is not None else None
+
+    def insert_sentence(self, sentence: Sentence):
+        sentence_collection = self.db[MongodbStorage.TABLE_SENTENCE]
+        sentence_collection.insert_one(sentence.data)
+
+    def iterate_single_sentence(self, filter: dict, print_progress: bool = True) -> list:
+        sentence_collection = self.db[MongodbStorage.TABLE_SENTENCE]
+        cursor = sentence_collection.find(filter=filter, no_cursor_timeout=True).batch_size(100)
+
+        counter = 0
+        size = cursor.count()
+        for entry in cursor:
+            counter += 1
+            if print_progress:
+                print("\r%.2f%%" % (counter / size * 100), end='')
+            yield Sentence(entry)
+        cursor.close()
+        if print_progress:
+            print("\n")

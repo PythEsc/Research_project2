@@ -1,7 +1,9 @@
 import csv
 
-from importer.database.data_types import Post, Comment
+from importer.database.data_types import Post, Comment, Emotion
+from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
+from nltk.corpus import wordnet as wn
 
 
 def read_data(database: MongodbStorage, supermarket: str, prefix: str):
@@ -41,6 +43,25 @@ def read_data(database: MongodbStorage, supermarket: str, prefix: str):
     print("Could not integrate this many posts and comments: " + str(count) + " for " + supermarket)
 
 
+def learn_more_emotion_words(db: DataStorage):
+    counter = 0
+    for emotion in db.iterate_single_emotion({}):
+        emotion_array = emotion.emotion
+        emotion_name = emotion.id
+        for ss in wn.synsets(emotion_name):
+            last_lemma = emotion_name
+            for lemma in ss.lemma_names():
+                if lemma == last_lemma:
+                    continue
+                if lemma != emotion_name and "_" not in lemma:
+                    last_lemma = lemma
+                    if db.select_single_emotion({Emotion.COLL_ID: lemma}) is None:
+                        new_emotion_object = Emotion.create_from_single_values(lemma, emotion_array)
+                        db.insert_emotion(new_emotion_object)
+                        counter += 1
+    return counter
+
+
 if __name__ == '__main__':
     db = MongodbStorage()
-    read_data(db, "Tesco", "TE")
+    learn_more_emotion_words(db)

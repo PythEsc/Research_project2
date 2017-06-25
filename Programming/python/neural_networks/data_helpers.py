@@ -1,4 +1,5 @@
 import numpy as np
+import re
 
 from importer.database.data_types import Post
 from importer.database.database_access import DataStorage
@@ -55,3 +56,14 @@ def get_training_set(db: DataStorage, threshold: int = 1, use_likes: bool = Fals
         new_reactions_matrix.append(new_reactions)
 
     return [filtered_posts, new_reactions_matrix]
+
+
+def clean_text(text):
+    clean_text = []
+    for t in text:
+        # To lower case
+        t = t.lower()
+        # Add space around punctuation
+        t = re.sub('([.\-\"\',:!()$%&\[\]{}?=;#+/*])', r' \1 ', t)
+        clean_text.append(t)
+    return clean_text

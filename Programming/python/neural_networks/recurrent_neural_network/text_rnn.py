@@ -1,5 +1,7 @@
 import os
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 import numpy as np
 import tensorflow as tf
 from sklearn import metrics
@@ -7,14 +9,16 @@ from tensorflow.contrib import learn
 
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
-from neural_networks.data_helpers import get_training_set, batch_iter
+from neural_networks.data_helpers import get_training_set, batch_iter, clean_text
 from neural_networks.neural_network import NeuralNetwork
+from pre_trained_embeddings.word_embeddings import WordEmbeddings
+from neural_networks.model_save_functions import save_model, restore_model
 
 
 class TextRNN(NeuralNetwork):
     def __init__(self, sequence_length, num_classes, vocab_size,
                  embedding_size, lstm_size, lstm_layers, batch_size, learning_rate=0.01,
-                 l2_reg_lambda=0.0):
+                 l2_reg_lambda=0.0, embedding=None):
 
         # Place holders for input, output and dropout
         # self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name='input_x')
@@ -27,10 +31,14 @@ class TextRNN(NeuralNetwork):
         l2_loss = tf.constant(0.0)
 
         # Embedding layer
-        self.embedding_vector = tf.Variable(
-            tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-            name='embedding_vector')
-        self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
+        if embedding is None:
+            self.embedding_vector = tf.Variable(
+                tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                name='embedding_vector')
+            self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
+        else:
+            self.embedding_vector = tf.Variable(embedding, name='embedding_vector')
+            self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
 
         # Basic LSTM cell
         self.lstm = tf.contrib.rnn.BasicLSTMCell(embedding_size)
@@ -72,15 +80,30 @@ class TextRNN(NeuralNetwork):
         self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))))
 
     @staticmethod
-    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3):
+    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=True):
         # TODO: Add some code to save/restore the model. At the moment we always have to start from the beginning when
         # training is stopped
-        x_text, y = get_training_set(db)
 
-        # Build vocabulary
+        print('Started training...')
+
+        # Load data
+        print('\nLoading training data...')
+        x_text, y = get_training_set(db)
+        x_text = clean_text(x_text)
+
+        # Load pre-trained word embedding
+        print('\nLoading pre-trained word embedding...')
+        embedding_dim = 50
+        we = WordEmbeddings(embedding_dim)
+
+        # Create feature matrix
+        print('\nCreating feature matrix...')
         max_document_length = max([len(x.split(" ")) for x in x_text])
-        vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
-        x = np.array(list(vocab_processor.fit_transform(x_text)))
+        vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length, vocabulary=we.categorical_vocab)
+        x = np.array(list(vocab_processor.transform(x_text)))
+        words_not_in_we = len(vocab_processor.vocabulary_) - len(we.vocab)
+        if words_not_in_we > 0:
+            print("Words not in pre-trained vocab: {:d}".format(words_not_in_we))
 
         # Randomly shuffle data
         np.random.seed(10)
@@ -91,23 +114,21 @@ class TextRNN(NeuralNetwork):
             value = y[shuffle_indices[i]]
             y_shuffled[i] = value
 
-        # Split train/test set
+        # Split train/dev set
         dev_sample_index = -1 * int(sample_percentage * float(len(y)))
         x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
         y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
-
-        print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
-        print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+        print("\nTrain/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
         # Training
         # ==================================================
-        num_epochs = 20
-        embedding_dim = 50
+        num_epochs = 1
         lstm_size = 128
         lstm_layers = 1
-        batch_size = 17
+        batch_size = 200
         learning_rate = 0.01
 
+        print('\nStarting training...\n')
         with tf.Graph().as_default():
             sess = tf.Session()
             with sess.as_default():
@@ -120,11 +141,18 @@ class TextRNN(NeuralNetwork):
                     lstm_size=lstm_size,
                     lstm_layers=lstm_layers,
                     batch_size=batch_size,
-                    learning_rate=learning_rate
+                    learning_rate=learning_rate,
+                    embedding=we.embd
                 )
 
                 saver = tf.train.Saver()
-                sess.run(tf.global_variables_initializer())
+                if restore:
+                    print('restore')
+                    sess = restore_model(sess, './checkpoints/')
+                else:
+                    print('no restore')
+                    sess.run(tf.global_variables_initializer())
+
                 epoch = 1
                 num_batches_per_epoch = int((len(x_train) - 1) / batch_size)
 
@@ -143,16 +171,16 @@ class TextRNN(NeuralNetwork):
                     print("\rBatch progress: %.2f%%" % progress, end='')
 
                     if (i + 1) % num_batches_per_epoch == 0:
-                        print("\nEpoch: {}/{}".format(epoch, num_epochs),
-                              "Train loss: {:.3f}".format(loss),
-                              "Mean squared error: {:.3f}".format(error))
+                        print("\nEpoch: {}/{}".format(epoch, num_epochs))
+                        print("Train loss: {:.3f}".format(loss))
+                        print("Mean squared error: {:.3f}".format(error))
 
                         # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
                         checkpoint_dir = os.path.abspath("./checkpoints/")
                         if not os.path.exists(checkpoint_dir):
                             os.makedirs(checkpoint_dir)
-                        print("Saving model to " + str(checkpoint_dir))
-                        saver.save(sess, "./checkpoints/rnn.ckpt")
+                        save_model(saver, sess, "./checkpoints/rnn.ckpt")
+                        # saver.save(sess, "./checkpoints/rnn.ckpt")
                         vocab_processor.save(os.path.join("./checkpoints", "vocab"))
 
                         if error < required_mse:
@@ -187,6 +215,9 @@ class TextRNN(NeuralNetwork):
     def predict(content: str) -> list:
         # TODO: This is not correct and needs to be fixed
         # Map data into vocabulary
+
+        print('\npredicting...')
+
         vocab_path = os.path.join("./checkpoints", "vocab")
         vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
         x = np.array(list(vocab_processor.transform(content)))
@@ -205,7 +236,7 @@ class TextRNN(NeuralNetwork):
                 dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
                 # Tensors we want to evaluate
-                predictions = graph.get_operation_by_name("output/scores").outputs[0]
+                predictions = graph.get_operation_by_name("scores").outputs[0]
 
                 # Collect the predictions here
                 predict = sess.run(predictions, {input_x: x, dropout_keep_prob: 0.5})

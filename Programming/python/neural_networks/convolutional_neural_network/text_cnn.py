@@ -1,7 +1,16 @@
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import learn
+
+from importer.database.database_access import DataStorage
+from neural_networks.neural_network import NeuralNetwork
 
 
-class TextCNN(object):
+class TextCNN(NeuralNetwork):
     """
     A CNN for text classification.
     Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
@@ -9,7 +18,7 @@ class TextCNN(object):
 
     def __init__(
             self, sequence_length, num_classes, vocab_size,
-            embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
+            embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, embedding=None):
         # Placeholders for input, output and dropout
         self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
         self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
@@ -20,11 +29,16 @@ class TextCNN(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            self.embedding_vector = tf.Variable(
-                tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                name="embedding_vector")
-            self.embedded_chars = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
-            self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
+            if embedding is None:
+                self.embedding_vector = tf.Variable(
+                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                    name='embedding_vector')
+                self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
+            else:
+                self.embedding_vector = tf.Variable(embedding, name='embedding_vector')
+                self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
+
+            self.embedded_chars_expanded = tf.expand_dims(self.embedding_layer, -1)
 
         # Create a convolution + maxpool layer for each filter size
         pooled_outputs = []
@@ -78,7 +92,50 @@ class TextCNN(object):
             self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
-        print(type(self.scores.eval()))
-        print(type(self.input_y.eval()))
         with tf.name_scope("accuracy"):
-            self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))))
+            self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))), name="accuracy")
+
+    @staticmethod
+    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
+        # TODO: Add some code to save/restore the model. At the moment we always have to start from the beginning when
+        # training is stopped
+        pass
+
+    @staticmethod
+    def predict(content: list) -> list:
+        """
+        This method predicts the Facebook reactions for a single post
+
+        :param content: The content of a single Facebook post but as a list ["..text..."]. This can also be used for the
+                        batch prediction later on. 
+        :return: A list of lists containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
+        """
+        # CHECKPOINT NEEDS TO BE LATEST CHECKPOINT YOU TRAINED
+        checkpoint_for_evaluation = "runs/1497955024/checkpoints/"
+
+        checkpoint_file = tf.train.latest_checkpoint(checkpoint_for_evaluation)
+        vocab_path = os.path.join(checkpoint_for_evaluation, "..", "vocab")
+        vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
+        content = np.array(list(vocab_processor.transform(content)))
+        graph = tf.Graph()
+        with graph.as_default():
+            session_conf = tf.ConfigProto(
+                allow_soft_placement=True,
+                log_device_placement=False)
+            sess = tf.Session(config=session_conf)
+            with sess.as_default():
+                # Load the saved meta graph and restore variables
+                saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
+                saver.restore(sess, checkpoint_file)
+
+                # Get the placeholders from the graph by name
+                input_x = graph.get_operation_by_name("input_x").outputs[0]
+                # input_y = graph.get_operation_by_name("input_y").outputs[0]
+                dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+
+                # Tensors we want to evaluate
+                predictions = graph.get_operation_by_name("output/scores").outputs[0]
+
+                # Collect the predictions here
+                result = sess.run(predictions, {input_x: content, dropout_keep_prob: 1})
+                return result

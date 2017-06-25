@@ -9,9 +9,10 @@ import tensorflow as tf
 # Data loading params
 from tensorflow.contrib import learn
 
-from importer.data_importer import DataImporter
+from importer.database.mongodb import MongodbStorage
 from neural_networks import data_helpers
-from neural_networks.convolutional_neural_network import TextCNN
+from neural_networks.convolutional_neural_network.text_cnn import TextCNN
+from neural_networks.data_helpers import get_training_set
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos",
@@ -38,21 +39,16 @@ tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on 
 
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
-print("\nParameters:")
-for attr, value in sorted(FLAGS.__flags.items()):
-    print("{}={}".format(attr.upper(), value))
-print("")
+
 
 # Data Preparation
 # ==================================================
 
 # Load data
 print("Loading data...")
-# x_text, y = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
-importer_sainsbury = DataImporter("../../../data/Filtered/Sainsbury.zip", "../../../data/Unzipped/Sainsbury")
-importer_sainsbury.load()
-x_text, y = importer_sainsbury.prepare_data_for_CNN()
 
+db = MongodbStorage()
+x_text, y = get_training_set(db)
 # Build vocabulary
 max_document_length = max([len(x.split(" ")) for x in x_text])
 vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
