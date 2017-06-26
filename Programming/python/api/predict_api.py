@@ -2,13 +2,15 @@ import traceback
 
 from flask import Flask, jsonify, request, make_response, abort
 
-from data_processing.emotion_mining import EmotionMiner
+from data_processing.emotion_mining.emotion_mining import EmotionMiner
+from data_processing.emotion_mining.negation_handling import NegationHandler
 from data_processing.sentiment_miner import Sentimenter
 from importer.database.data_types import Emotion
 from importer.database.mongodb import MongodbStorage
 
 db = MongodbStorage()
 
+advanced_emotion = NegationHandler(db)
 emotion = EmotionMiner(db)
 sentiment = Sentimenter(db)
 
@@ -80,7 +82,7 @@ def __process_single_post(post):
 
     # ---------- Emotions ----------
     # Post emotion
-    emotion_list = emotion.get_post_emotion_value(post)
+    emotion_list = advanced_emotion.get_emotion(post)
     emotions = {}
     for index, emotionname in enumerate(Emotion.EMOTION_TYPES):
         emotions[emotionname] = emotion_list[index]
@@ -101,7 +103,13 @@ def __process_single_post(post):
     sentiment_words = sentiment.get_words_sentiment_value(post)
 
     # ---------- Reactions ----------
-    # TODO: Add the reaction_prediction
+    # reactions_rnn = TextRNN.predict(post)
+    # reaction_cnn = TextCNN.predict(post)
+    #
+    # reactions_list = [x + y / 2 for x, y in zip(reactions_rnn, reaction_cnn)]
+    # reactions_dict = {}
+    # for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES):
+    #     reactions_dict[reactiontype] = reactions_list[index]
 
     # Create response
     response = dict(reactions={},

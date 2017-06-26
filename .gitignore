@@ -1,6 +1,7 @@
 data/Filtered/Sainsbury/
 data/Filtered/Tesco/
 data/Unzipped/
+data/category_classifier.pickle
 Documents/Project Plan/Project Plan.aux
 Documents/Project Plan/Project Plan.log
 Documents/Project Plan/Project Plan.synctex.gz
@@ -9,8 +10,8 @@ Documents/Project Plan/Project Plan.blg
 Documents/Project Plan/Project Plan.pdf
 Programming/Unzipped/
 Programming/training/
-Programming/python/neural_networks/convolutional_neural_network/checkpoints/
+Programming/python/pre_trained_embeddings/glove/glove*
+Programming/python/neural_networks/convolutional_neural_network/runs/
 Programming/python/neural_networks/recurrent_neural_network/checkpoints/
 \.idea/
 *.pyc
-Programming/python/pre_trained_embeddings/glove/glove*

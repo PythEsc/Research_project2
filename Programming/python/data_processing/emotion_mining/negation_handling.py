@@ -54,7 +54,7 @@ class NegationHandler:
             sentences.append(sentence_splitted)
 
         for sent_index, sentence in enumerate(output.get("sentences", [])):
-            lookedup_sentence = db.select_single_sentence({Sentence.COLL_CONTENT: sentences[sent_index]})
+            lookedup_sentence = self.db.select_single_sentence({Sentence.COLL_CONTENT: sentences[sent_index]})
             if lookedup_sentence is not None:
                 total_emotion = [x + y for x, y in zip(lookedup_sentence.emotion, total_emotion)]
                 continue
@@ -74,7 +74,7 @@ class NegationHandler:
 
                     next_token = tokens[token_index + 1]
                     while True:
-                        next_token_emotion = db.select_single_emotion(next_token["originalText"])
+                        next_token_emotion = self.db.select_single_emotion(next_token["originalText"])
                         index_to_continue = next_token["index"]
                         if next_token_emotion is not None:
                             negated_emotion = self.__get_negated_emotions(next_token_emotion)
@@ -90,14 +90,14 @@ class NegationHandler:
                             else:
                                 break
                 else:
-                    token_emotion = db.select_single_emotion(token["originalText"])
+                    token_emotion = self.db.select_single_emotion(token["originalText"])
                     if token_emotion is not None:
                         sentence_emotion = [x + y for x, y in zip(token_emotion.emotion, sentence_emotion)]
                         add_to_database = True
 
             total_emotion = [x + y for x, y in zip(sentence_emotion, total_emotion)]
             if add_to_database:
-                db.insert_sentence(Sentence.create_from_single_values(sentences[sent_index], sentence_emotion))
+                self.db.insert_sentence(Sentence.create_from_single_values(sentences[sent_index], sentence_emotion))
 
         return total_emotion
 
