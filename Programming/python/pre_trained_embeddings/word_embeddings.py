@@ -44,7 +44,7 @@ class WordEmbeddings():
             for line in file.readlines():
                 row = line.strip().split(' ')
                 vocab.append(row[0])
-            embd.append(row[1:])
+                embd.append(row[1:])
         self.vocab = vocab
         self.embd = np.array(embd).astype(np.float32)
         self.categorical_vocab = self._createCategoricalVocabulary(self.vocab)
