@@ -40,7 +40,6 @@
         xhr.onload = function () { //Handles the response by the server
             var status = xhr.status;
             if (status == 200) {
-                alert('Something went wrong: ' + xhr.response);
                 console.log(xhr.response)
                 var response = xhr.response;
                 console.log("Received response: " + response);
@@ -49,8 +48,8 @@
                 var emotions = [];
 
                 j = 0;
-                for (var i in data.emotions) {
-                    emotions[j] = {label: i, value: data.emotions[i]};
+                for (var i in response.emotions) {
+                    emotions[j] = {label: i, value: response.emotions[i]};
                     j++;
 
                 }
@@ -226,7 +225,7 @@
         });
     }
 
-    //Initializes an empty donut. TODO: Maybe remove this?
+    //Initializes an empty donut.
     function initDonut() {
         var labels = color.domain();
         return labels.map(function (label) {
@@ -237,7 +236,7 @@
     //Initialization (Empty Donut).
     updateDonut(initDonut());
 
-    updateBars(); //TODO: Remove this test line
+    //updateBars(); //TODO: Remove this test line
 
 
 
