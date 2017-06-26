@@ -237,6 +237,15 @@
     //Initialization (Empty Donut).
     updateDonut(initDonut());
 
+    updateBars(); //TODO: Remove this test line
+
+
+
+
+    function updateBars(values){
+        var bar = svgReactions.selectAll("bar").data(values); //TODO: Implement the update method.
+        console.log(bar);
+    }
 
     //Updates the donut
     function updateDonut(data) {
