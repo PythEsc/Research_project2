@@ -93,7 +93,7 @@ class TextCNN(NeuralNetwork):
 
         # Accuracy
         with tf.name_scope("accuracy"):
-            self.accuracy = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(self.input_y, self.scores))), name="accuracy")
+            self.accuracy = tf.losses.mean_squared_error(self.input_y, self.scores)
 
     @staticmethod
     def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
