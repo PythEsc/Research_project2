@@ -19,7 +19,6 @@
 </div>
 <div id="piechart">
     <h2>Emotion Analysis</h2>
-    <button class="randomize">Refresh!</button>
 </div>
 
 <script>
@@ -29,9 +28,7 @@
         var text = document.getElementById("input").value;
 
 
-
-
-        var data = { "post": text}
+        var data = {"post": text}
         //Prepare the connection
         var xhr = new XMLHttpRequest();
         xhr.open("POST", "http://localhost:5000/predict/single");
@@ -55,6 +52,20 @@
                 }
                 //Update the Donut Chart
                 updateDonut(emotions);
+
+
+                //Extract the reactions
+                var values = [];
+
+                j = 0;
+                for (var i in response.reactions) {
+                    values[j] = {label: i, frequ: response.reactions[i]};
+                    j++;
+
+                }
+
+                //Update the bars
+                updateBars(values);
             } else {
 
                 alert('Something went wrong: ' + xhr.response);
@@ -75,7 +86,7 @@
     // set the ranges
     var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
 
-    var y = d3.scale.linear().range([height, 0]);
+    var y = d3.scale.linear().range([height, 0]); //Set the range to 1 and 0 since we are dealing with ratios (gives a better impression when comparing posts).
 
 
     // define the axis
@@ -198,25 +209,6 @@
         .domain(["ANGER", "ANTICIPATION", "DISGUST", "FEAR", "JOY", "SADNESS", "SURPRISE", "TRUST"])
         .range(["#d62222", "#ffff00", "#b266ff", "#00e9ff", "#1ae024", "#0a5866", "#ffdf3f", "#8c3a6f"]);
 
-    d3.select(".randomize")
-        .on("click", function () {
-            d3.json("data.json", function (error, data) {
-
-                //Convert the data to an easier to use format
-                var emotions = [];
-
-                j = 0;
-                for (var i in data.emotions) {
-                    emotions[j] = {label: i, value: data.emotions[i]};
-                    j++;
-
-                }
-                //Update the Donut Chart
-                updateDonut(emotions);
-            });
-
-        });
-
     //Sets the emotions to random data.
     function randomData() {
         var labels = color.domain();
@@ -239,11 +231,64 @@
     //updateBars(); //TODO: Remove this test line
 
 
+    function updateBars(values) {
 
 
-    function updateBars(values){
-        var bar = svgReactions.selectAll("bar").data(values); //TODO: Implement the update method.
+        //TODO: Remove test code
+        var likes = Math.random();
+        var angry = Math.random() * (1 - likes);
+        var sad = 1 - likes - angry;
+
+        values = [{label : "Like", frequ : likes}, {label : "Angry", frequ : angry}, {label : "Sad", frequ : sad}]
+        console.log(values);
+        var bar = svgReactions.selectAll(".reactionsBar"); //TODO: Implement the update method.
+        bar.data(values);
+        console.log("Bar: " + bar);
         console.log(bar);
+        svgReactions.selectAll(".reactionsBar").transition()
+            .attr("x", function (d) {
+                console.log("D has value:" + d.label);
+                return x(d.label);
+            })
+            .attr("y", function (d) {
+                return y(d.frequ);
+            })
+            .attr("height", function (d) {
+                console.log(d.frequ);
+                return height - y(d.frequ);
+            })
+            .attr("width", x.rangeBand());
+
+
+        /*
+         selection = document.getElementById("dropdown");
+
+         y.domain([0, d3.max(data, function(d){
+         return +d[selection.value];})]);
+
+         yAxis.scale(y);
+
+         d3.selectAll(".rectangle")
+         .transition()
+         .attr("height", function(d){
+         return height - y(+d[selection.value]);
+         })
+         .attr("x", function(d, i){
+         return (width / data.length) * i ;
+         })
+         .attr("y", function(d){
+         return y(+d[selection.value]);
+         })
+         .ease("linear")
+         .select("title")
+         .text(function(d){
+         return d.State + " : " + d[selection.value];
+         });
+
+         d3.selectAll("g.y.axis")
+         .transition()
+         .call(yAxis);
+         */
     }
 
     //Updates the donut
