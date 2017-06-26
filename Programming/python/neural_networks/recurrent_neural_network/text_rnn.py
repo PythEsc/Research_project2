@@ -18,7 +18,7 @@ from neural_networks.model_save_functions import save_model, restore_model
 
 class TextRNN(NeuralNetwork):
     def __init__(self, sequence_length, num_classes, vocab_size,
-                 embedding_size, lstm_layers, batch_size, learning_rate=0.01,
+                 embedding_size, lstm_layers, batch_size, learning_rate=0.001,
                  l2_reg_lambda=0.0, embedding=None):
 
         # Place holders for input, output and dropout
@@ -48,11 +48,15 @@ class TextRNN(NeuralNetwork):
         # Stack multiple layers of LSTM
         self.cell = tf.contrib.rnn.MultiRNNCell([self.drop] * lstm_layers)
 
+        # Input length
+        self.l = tf.cast(tf.reduce_sum(tf.sign(tf.abs(self.input_x)), reduction_indices=1), tf.int32)
+
         # Forward pass
         self.initial_state = self.cell.zero_state(batch_size, tf.float32)
         # self.outputs, self.final_state = tf.nn.dynamic_rnn(self.cell, self.embedding_layer,
         #                                                    initial_state=self.initial_state)
         self.outputs, self.final_state = tf.nn.dynamic_rnn(self.cell, self.embedding_layer, dtype=tf.float32)
+                                                           # , sequence_length=self.l)
 
         # Output
         W = tf.get_variable('W',
@@ -270,14 +274,32 @@ if __name__ == '__main__':
     db = MongodbStorage()
 
     TextRNN.train(db, required_mse=0.1, restore=False)
-    # TextRNN.train(db, required_mse=0.150, restore=True)
+    # TextRNN.train(db, required_mse=0.1, restore=True)
 
 
     content = ["This is just some sample post. I will try to use real posts later. Your salad is really disgusting!!!",
                "I really love to shop at Tesco!",
-               "Your employees are so rude!"]
+               "Your employees are so rude!",
+               "Brought two packets of 'Snackers' chicken bites 60g from Ely store. "
+               "The two packets felt very different in weight so I weighed them (unopened). "
+               "One was 62g however the other was only 40g. Is this how Aldi keeps costs low, "
+               "by only filling packets up by two-thirds?"]
 
     predicted_reactions = TextRNN.predict(content)
 
     for i, r in enumerate(content):
         print('{}:\n{}'.format(r, predicted_reactions[i]))
+
+
+    # # Test input lenght counter tensor
+    # vocab_path = os.path.join("./checkpoints", "vocab")
+    # vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
+    # x = np.array(list(vocab_processor.transform(clean_text(content))))
+    #
+    # graph = tf.Graph()
+    # with graph.as_default():
+    #     sess = tf.Session()
+    #     with sess.as_default():
+    #         rnn = TextRNN(1, 1, 1, 1, 1, 1)
+    #         l = sess.run(rnn.l, feed_dict={rnn.input_x: x})
+    #         print(l)
