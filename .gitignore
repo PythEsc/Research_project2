@@ -14,3 +14,7 @@ Programming/python/neural_networks/recurrent_neural_network/checkpoints/
 \.idea/
 *.pyc
 Programming/python/pre_trained_embeddings/glove/glove*
+Programming/python/neural_networks/recurrent_neural_network/experiments/
+Programming/python/neural_networks/convolutional_neural_network/runs/
+Programming/python/neural_networks/convolutional_neural_network/experiments/pre_trained.csv
+*experiment_results.xlsx
