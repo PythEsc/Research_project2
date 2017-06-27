@@ -4,13 +4,14 @@ from itertools import cycle
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pycorenlp import StanfordCoreNLP
 from sklearn import svm
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import precision_recall_curve, average_precision_score
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import Pipeline
 
-from importer.database.data_types import Emotion
+from importer.database.data_types import Emotion, Sentence
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
 
@@ -22,6 +23,9 @@ class CategoryClassifier:
                              ('clf', OneVsRestClassifier(svm.LinearSVC()))])
 
         self.db = db
+        self.nlp = StanfordCoreNLP('http://localhost:9000')
+        self.properties_ssplit = {'annotators': 'ssplit', 'outputFormat': 'json'}
+        self.properties_pos = {'annotators': 'pos', 'outputFormat': 'json'}
 
     def load_model_from_file(self, filename: str):
         with open(filename, "rb") as input_file:
@@ -56,7 +60,7 @@ class CategoryClassifier:
     def classify(self, content: str) -> list:
         return self.clf.predict([content])
 
-    def evaluate(self, percent_training: float = 0.95):
+    def evaluate(self, percent_training: float = 0.95, use_pickle: bool = False):
         data = []
         labels = []
         for sentence in self.db.iterate_single_sentence({}):
@@ -70,7 +74,8 @@ class CategoryClassifier:
         y_train = np.array(labels[:per])
         y_test = np.array(labels[per:])
 
-        self.clf.fit(x_train, y_train)
+        if use_pickle is False:
+            self.clf.fit(x_train, y_train)
 
         self.plot_accuracy(Emotion.EMOTION_TYPES, len(Emotion.EMOTION_TYPES), x_test, y_test)
 
@@ -128,17 +133,53 @@ class CategoryClassifier:
         plt.legend(loc="lower right")
         plt.show()
 
+    def predict_non_annotated_sentences(self):
+        count_non_annotated = 0
+        emotions_statistics = [0] * len(Emotion.EMOTION_TYPES)
+        for comment_object in db.iterate_single_comment({}):
+            comment = comment_object.content
+            output = self.nlp.annotate(comment, self.properties_pos)
+            if not isinstance(output, dict):
+                return
+            sentences = []
+
+            for sentence in output.get("sentences", []):
+                begin = sentence["tokens"][0]
+                end = sentence["tokens"][-1]
+
+                start_index = begin['characterOffsetBegin']
+                end_index = end['characterOffsetEnd']
+                sentence_splitted = comment[start_index: end_index]
+                sentences.append(sentence_splitted)
+            for sent_index, sentence in enumerate(output.get("sentences", [])):
+                actual_sentence = sentences[sent_index]
+                lookedup_sentence = db.select_single_sentence({Sentence.COLL_CONTENT: actual_sentence})
+                if lookedup_sentence is not None:
+                    continue
+                sentence_emotion = self.clf.predict([actual_sentence])
+                if len(sentence_emotion) > 0:
+                    emotions_statistics = [x + y for x, y in zip(emotions_statistics, sentence_emotion)]
+                    count_non_annotated += 1
+                    new_sentence = Sentence.create_from_single_values(actual_sentence, sentence_emotion[0].tolist(), True)
+                    db.insert_sentence(new_sentence)
+        return count_non_annotated, emotions_statistics
 
 if __name__ == '__main__':
     db = MongodbStorage()
     cat_clf = CategoryClassifier(db)
 
-    # filename = "../../../../data/category_classifier.pickle"
-    #
-    # if os.path.isfile(filename):
-    #     cat_clf.load_model_from_file(filename)
-    # else:
-    #     cat_clf.train()
-    #     cat_clf.save_model_to_file(filename)
+    filename = "category_classifier.pickle"
 
-    cat_clf.evaluate(0.95)
+    if os.path.isfile(filename):
+     cat_clf.load_model_from_file(filename)
+    else:
+     cat_clf.train()
+     cat_clf.save_model_to_file(filename)
+
+    count_non_annotated, emotions_statistics = cat_clf.predict_non_annotated_sentences()
+    print("Number of predicted non-annotated sentences: ", str(count_non_annotated))
+    sum_of_emotions = sum(emotions_statistics)
+    emotions_statistics_normalized = [x/sum_of_emotions for x in emotions_statistics]
+    print("Emotion distribution of predicted non-annotated sentences: ", str(emotions_statistics))
+    print("Emotion distribution of predicted non-annotated sentences (normalized): ", str(emotions_statistics_normalized))
+    #cat_clf.evaluate(0.95, use_pickle=False)
