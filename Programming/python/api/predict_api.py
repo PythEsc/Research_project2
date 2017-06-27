@@ -109,10 +109,10 @@ def __process_single_post(post):
     reactions_rnn = TextRNN.predict([post])
     reaction_cnn = TextCNN.predict([post])
 
-    reactions_list = [x + y / 2 for x, y in zip(reactions_rnn, reaction_cnn[0])]
+    reactions_list = [(x + y) / 2 for x, y in zip(reactions_rnn[0], reaction_cnn[0])]
     reactions_dict = {}
     for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES[1:-1]):
-        reactions_dict[reactiontype] = float(reactions_list[0][index])
+        reactions_dict[reactiontype] = float(reactions_list[index])
 
     # Create response
     response = dict(reactions=reactions_dict,
