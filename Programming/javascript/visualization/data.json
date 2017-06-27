@@ -1,0 +1,64 @@
+{
+  "emotionWords": [
+    [
+      "disgusting",
+      14,
+      24,
+      {
+        "ANGER": 1,
+        "ANTICIPATION": 0,
+        "DISGUST": 1,
+        "FEAR": 1,
+        "JOY": 0,
+        "SADNESS": 1,
+        "SURPRISE": 0,
+        "TRUST": 0
+      }
+    ],
+    [
+      "hate",
+      35,
+      39,
+      {
+        "ANGER": 1,
+        "ANTICIPATION": 0,
+        "DISGUST": 1,
+        "FEAR": 1,
+        "JOY": 0,
+        "SADNESS": 1,
+        "SURPRISE": 0,
+        "TRUST": 0
+      }
+    ]
+  ],
+  "emotions": {
+    "ANGER": 2,
+    "ANTICIPATION": 0,
+    "DISGUST": 2,
+    "FEAR": 2,
+    "JOY": 0,
+    "SADNESS": 2,
+    "SURPRISE": 0,
+    "TRUST": 0
+  },
+  "reactions": {
+    "Like" : 0.2,
+    "Angry" : 0.3,
+    "Sad" : 0.5
+  },
+  "sentiment": -1.0,
+  "sentimentWords": [
+    [
+      "disgusting",
+      13,
+      23,
+      "Negative"
+    ],
+    [
+      "hate",
+      35,
+      39,
+      "Negative"
+    ]
+  ]
+}

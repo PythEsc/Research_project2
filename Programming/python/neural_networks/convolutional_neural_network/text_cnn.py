@@ -111,7 +111,7 @@ class TextCNN(NeuralNetwork):
         :return: A list of lists containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
         """
         # CHECKPOINT NEEDS TO BE LATEST CHECKPOINT YOU TRAINED
-        checkpoint_for_evaluation = "runs/1497955024/checkpoints/"
+        checkpoint_for_evaluation = "runs/1498554852/checkpoints/"
 
         checkpoint_file = tf.train.latest_checkpoint(checkpoint_for_evaluation)
         vocab_path = os.path.join(checkpoint_for_evaluation, "..", "vocab")
@@ -139,3 +139,25 @@ class TextCNN(NeuralNetwork):
                 # Collect the predictions here
                 result = sess.run(predictions, {input_x: content, dropout_keep_prob: 1})
                 return result
+
+if __name__ == '__main__':
+
+    from importer.database.mongodb import MongodbStorage
+    db = MongodbStorage()
+
+    # TextRNN.train(db, required_mse=0.1, restore=False)
+    # TextRNN.train(db, required_mse=0.1, restore=True)
+
+
+    content = ["This is just some sample post. I will try to use real posts later. Your salad is really disgusting!!!",
+               "I really love to shop at Tesco!",
+               "Your employees are so rude!",
+               "Brought two packets of 'Snackers' chicken bites 60g from Ely store. "
+               "The two packets felt very different in weight so I weighed them (unopened). "
+               "One was 62g however the other was only 40g. Is this how Aldi keeps costs low, "
+               "by only filling packets up by two-thirds?"]
+
+    predicted_reactions = TextCNN.predict(content)
+
+    for i, r in enumerate(content):
+        print('{}:\n{}'.format(r, predicted_reactions[i]))

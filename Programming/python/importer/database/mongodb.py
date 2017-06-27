@@ -171,3 +171,7 @@ class MongodbStorage(DataStorage):
         cursor.close()
         if print_progress:
             print("\n")
+
+    def update_sentence(self, sentence: Sentence):
+        sentence_collection = self.db[MongodbStorage.TABLE_SENTENCE]
+        sentence_collection.update_one({'_id': sentence.id}, {'$set': sentence.data})

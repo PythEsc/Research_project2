@@ -3,6 +3,7 @@ import traceback
 from flask import Flask, jsonify, request, make_response, abort
 
 from data_processing.emotion_mining.emotion_mining import EmotionMiner
+from data_processing.emotion_mining.emotion_mining import EmotionMiner
 from data_processing.emotion_mining.negation_handling import NegationHandler
 from data_processing.sentiment_miner import Sentimenter
 from importer.data_retrieval.facebook.facebook_parser import FacebookParser

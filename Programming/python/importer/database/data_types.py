@@ -277,8 +277,9 @@ class Sentence:
     COLL_ID = "_id"
     COLL_CONTENT = "content"
     COLL_EMOTION = "emotion"
+    COLL_PREDICTED = "predicted"
 
-    VALID_COLUMNS = [COLL_ID, COLL_CONTENT, COLL_EMOTION]
+    VALID_COLUMNS = [COLL_ID, COLL_CONTENT, COLL_EMOTION, COLL_PREDICTED]
     MANDATORY_COLUMNS = [COLL_ID, COLL_CONTENT, COLL_EMOTION]
 
     def __init__(self, structure: dict):
@@ -294,14 +295,14 @@ class Sentence:
         for key, value in sentence.items():
             assert key in self.VALID_COLUMNS, "Sentence contains invalid key: '{key}'".format(key=key)
             assert isinstance(value,
-                              (str, list)), "Sentence invalid. The entry for the key '{key}' is invalid: '{value}'" \
+                              (str, list, bool)), "Sentence invalid. The entry for the key '{key}' is invalid: '{value}'" \
                 .format(key=key, value=value)
 
         for key in self.MANDATORY_COLUMNS:
             assert key in sentence, "Mandatory key missing in sentence: '{key}'".format(key=key)
 
     @staticmethod
-    def create_from_single_values(sentence: str, emotions: list):
+    def create_from_single_values(sentence: str, emotions: list, predicted: bool):
         """
         Creates a sentence object from single sentence values
 
@@ -312,7 +313,8 @@ class Sentence:
 
         data = {Sentence.COLL_ID: hashlib.md5(sentence.encode('utf-8')).hexdigest(),
                 Sentence.COLL_CONTENT: sentence,
-                Sentence.COLL_EMOTION: emotions}
+                Sentence.COLL_EMOTION: emotions,
+                Sentence.COLL_PREDICTED: predicted}
 
         return Sentence(data)
 
@@ -327,3 +329,11 @@ class Sentence:
     @property
     def content(self) -> str:
         return self.data[Sentence.COLL_CONTENT]
+
+    @property
+    def predicted(self) -> bool:
+        return self.data[Sentence.COLL_PREDICTED] if Sentence.COLL_PREDICTED in self.data else False
+
+    @predicted.setter
+    def predicted(self, predicted: bool):
+        self.data[Sentence.COLL_PREDICTED] = predicted

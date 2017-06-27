@@ -12,7 +12,8 @@ from tensorflow.contrib import learn
 from importer.database.mongodb import MongodbStorage
 from neural_networks import data_helpers
 from neural_networks.convolutional_neural_network.text_cnn import TextCNN
-from neural_networks.data_helpers import get_training_set
+from neural_networks.data_helpers import get_training_set, clean_text
+from pre_trained_embeddings.word_embeddings import WordEmbeddings
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos",
@@ -29,8 +30,8 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 16, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 20, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_integer("num_epochs", 30, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("evaluate_every", 455, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 # Misc Parameters
@@ -49,10 +50,33 @@ print("Loading data...")
 
 db = MongodbStorage()
 x_text, y = get_training_set(db)
-# Build vocabulary
-max_document_length = max([len(x.split(" ")) for x in x_text])
-vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
-x = np.array(list(vocab_processor.fit_transform(x_text)))
+x_text = clean_text(x_text)
+# # Build vocabulary
+# max_document_length = max([len(x.split(" ")) for x in x_text])
+# vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
+# x = np.array(list(vocab_processor.fit_transform(x_text)))
+
+# Load pre-trained word embedding
+print('\nLoading pre-trained word embedding...')
+embedding_dim = 50
+we = WordEmbeddings(embedding_dim)
+
+# Create feature matrix using vocab from trained WordEmbeddings
+print('\nCreating feature matrix...')
+document_legths = [len(x.split(" ")) for x in x_text]
+max_document_length = max(document_legths)
+min_document_length = min(document_legths)
+mean_document_length = int(sum(document_legths) / len(document_legths))
+print('Max document length is {}.'.format(max_document_length))
+print('Mean document length is {}.'.format(mean_document_length))
+print('Min document length is {}.'.format(min_document_length))
+vocab_processor = learn.preprocessing.VocabularyProcessor(mean_document_length, vocabulary=we.categorical_vocab)
+x = np.array(list(vocab_processor.transform(x_text)))
+y = np.copy(y)
+words_not_in_we = len(vocab_processor.vocabulary_) - len(we.vocab)
+if words_not_in_we > 0:
+    print("Words not in pre-trained vocab: {:d}".format(words_not_in_we))
+
 
 # Randomly shuffle data
 np.random.seed(10)
@@ -73,6 +97,9 @@ print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
 # Training
 # ==================================================
+experiment_file = './experiments/pre_trained.csv'
+with open(experiment_file, 'w+', encoding='utf-8') as file:
+    file.write('val_mse,train_mse')
 
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
@@ -91,7 +118,7 @@ with tf.Graph().as_default():
 
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
-        optimizer = tf.train.AdamOptimizer(1e-3)
+        optimizer = tf.train.AdamOptimizer(0.0005)
         grads_and_vars = optimizer.compute_gradients(cnn.loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
@@ -151,8 +178,10 @@ with tf.Graph().as_default():
                 [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
+            return accuracy
+
 
 
         def dev_step(x_batch, y_batch, writer=None):
@@ -172,19 +201,33 @@ with tf.Graph().as_default():
             if writer:
                 writer.add_summary(summaries, step)
 
+            return accuracy
+
 
         # Generate batches
         batches = data_helpers.batch_iter(
             list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
         # Training loop. For each batch...
+        errors = []
         for batch in batches:
             x_batch, y_batch = zip(*batch)
-            train_step(x_batch, y_batch)
+            error = train_step(x_batch, y_batch)
+            errors.append(error)
+
             current_step = tf.train.global_step(sess, global_step)
+
+
+
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(x_dev, y_dev, writer=dev_summary_writer)
+                val_error = dev_step(x_dev, y_dev, writer=dev_summary_writer)
                 print("")
+
+                with open(experiment_file, 'a', encoding='utf-8') as file:
+                    file.write('\n{},{}'.format(val_error, np.mean(errors)))
+
+                errors = []
+
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                 print("Saved model checkpoint to {}\n".format(path))
