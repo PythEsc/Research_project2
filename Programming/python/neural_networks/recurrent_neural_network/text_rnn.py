@@ -55,8 +55,8 @@ class TextRNN(NeuralNetwork):
         self.initial_state = self.cell.zero_state(batch_size, tf.float32)
         # self.outputs, self.final_state = tf.nn.dynamic_rnn(self.cell, self.embedding_layer,
         #                                                    initial_state=self.initial_state)
-        self.outputs, self.final_state = tf.nn.dynamic_rnn(self.cell, self.embedding_layer, dtype=tf.float32)
-                                                           # , sequence_length=self.l)
+        self.outputs, self.final_state = tf.nn.dynamic_rnn(self.cell, self.embedding_layer, dtype=tf.float32
+                                                           , sequence_length=self.l)
 
         # Output
         W = tf.get_variable('W',
@@ -80,10 +80,7 @@ class TextRNN(NeuralNetwork):
         self.accuracy = tf.losses.mean_squared_error(self.input_y, self.scores)
 
     @staticmethod
-    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
-        # TODO: Add some code to save/restore the model. At the moment we always have to start from the beginning when
-        # training is stopped
-
+    def train(db: DataStorage, sample_percentage: float = 0.1, required_mse: float = 0.3, restore=False):
         print('Started training...')
 
         # Load data
@@ -105,12 +102,21 @@ class TextRNN(NeuralNetwork):
         print('Max document length is {}.'.format(max_document_length))
         print('Mean document length is {}.'.format(mean_document_length))
         print('Min document length is {}.'.format(min_document_length))
-        vocab_processor = learn.preprocessing.VocabularyProcessor(20, vocabulary=we.categorical_vocab)
+        vocab_processor = learn.preprocessing.VocabularyProcessor(mean_document_length, vocabulary=we.categorical_vocab)
         x = np.array(list(vocab_processor.transform(x_text)))
         y = np.copy(y)
         words_not_in_we = len(vocab_processor.vocabulary_) - len(we.vocab)
         if words_not_in_we > 0:
             print("Words not in pre-trained vocab: {:d}".format(words_not_in_we))
+
+        # Randomly shuffle data
+        np.random.seed(30)
+        shuffle_indices = np.random.permutation(np.arange(len(y)))
+        x_shuffled = x[shuffle_indices]
+        y_shuffled = np.copy(y)
+        for i in range(len(shuffle_indices)):
+            value = y[shuffle_indices[i]]
+            y_shuffled[i] = value
 
         # Split train/dev set
         dev_sample_index = -1 * int(sample_percentage * float(len(y)))
@@ -120,10 +126,13 @@ class TextRNN(NeuralNetwork):
 
         # Training
         # ==================================================
-        num_epochs = 1
+        experiment_file = './experiments/pre_trained.csv'
+        with open(experiment_file, 'w+', encoding='utf-8') as file:
+            file.write('epoch,val_mse,train_mse')
+        num_epochs = 30
         lstm_layers = 1
         batch_size = 200
-        learning_rate = 0.001
+        learning_rate = 0.0001
 
         print('\nStarting training...\n')
         with tf.Graph().as_default():
@@ -173,11 +182,12 @@ class TextRNN(NeuralNetwork):
                     print("\rBatch progress: %.2f%%" % progress, end='')
 
                     if (i + 1) % num_batches_per_epoch == 0:
-                        mserror = np.mean(errors)
+                        train_mserror = np.mean(errors)
+                        train_std = np.std(errors)
                         print("\nEpoch: {}/{}".format(epoch, num_epochs))
                         print("Train loss: {:.3f}".format(loss))
-                        print("Mean squared error: {:.4f}".format(mserror))
-                        print("Mean squared error std: {:.4f}".format(np.std(errors)))
+                        print("Training set - average Mean squared error: {:.4f}".format(train_mserror))
+                        print("Training set - Mean squared error std: {:.4f}".format(train_std))
 
                         # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
                         checkpoint_dir = os.path.abspath("./checkpoints/")
@@ -187,34 +197,51 @@ class TextRNN(NeuralNetwork):
                         # saver.save(sess, "./checkpoints/rnn.ckpt")
                         vocab_processor.save(os.path.join("./checkpoints", "vocab"))
 
-                        if mserror < required_mse:
+                        # Validation accuracy
+                        errors = []
+                        feed = {rnn.input_x: x_dev,
+                                rnn.input_y: y_dev,
+                                rnn.dropout_keep_prob: 1}
+                        error = sess.run([rnn.accuracy], feed_dict=feed)
+                        errors.append(error)
+                        mse = np.mean(errors)
+                        with open(experiment_file, 'a', encoding='utf-8') as file:
+                            file.write('\n{},{},{}'.format(epoch, np.mean(errors), train_mserror))
+
+                        if train_mserror < required_mse:
                             print("Reached the required mean squared error. Stop training")
                             break
 
                         epoch += 1
+                        errors = []
 
                 pred = []
 
-                test_state = sess.run(rnn.cell.zero_state(batch_size, tf.float32))
+                # test_state = sess.run(rnn.cell.zero_state(batch_size, tf.float32))
+
+                errors = []
                 for batch in batch_iter(list(zip(x_dev, y_dev)), batch_size, 1):
                     x, y = zip(*batch)
                     feed = {rnn.input_x: x,
+                            rnn.input_y: y,
                             rnn.dropout_keep_prob: 1,
                             # rnn.initial_state: test_state
                             }
-
+                    error = sess.run([rnn.accuracy], feed_dict=feed)
+                    errors.append(error)
                     # preds, test_state = sess.run([rnn.scores, rnn.final_state], feed_dict=feed)
-                    preds = sess.run([rnn.scores], feed_dict=feed)
-                    for p in preds[0]:
-                        pred.append(p)
+                    # preds = sess.run([rnn.scores], feed_dict=feed)
+                    # for p in preds[0]:
+                    #     pred.append(p)
 
-                y_dev = y_dev[:len(pred)]
+                # y_dev = y_dev[:len(pred)]
 
-                mae = metrics.mean_absolute_error(y_dev, pred)
-                mse = metrics.mean_squared_error(y_dev, pred)
-
-                print('\nMean absolute error: {:.4f}'.format(mae))
-                print('Mean squared error: {:.4f}'.format(mse))
+                # mae = metrics.mean_absolute_error(y_dev, pred)
+                # mse = metrics.mean_squared_error(y_dev, pred)
+                mse = np.mean(errors)
+                # print('\nMean absolute error: {:.4f}'.format(mae))
+                print('Testing set - average Mean squared error: {:.4f}'.format(mse))
+                print("Testing set - Mean squared error std: {:.4f}".format(np.std(errors)))
 
     @staticmethod
     def predict(content: list) -> list:
@@ -290,16 +317,11 @@ if __name__ == '__main__':
     for i, r in enumerate(content):
         print('{}:\n{}'.format(r, predicted_reactions[i]))
 
+    # Sound when finished
+    import platform
 
-    # # Test input lenght counter tensor
-    # vocab_path = os.path.join("./checkpoints", "vocab")
-    # vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
-    # x = np.array(list(vocab_processor.transform(clean_text(content))))
-    #
-    # graph = tf.Graph()
-    # with graph.as_default():
-    #     sess = tf.Session()
-    #     with sess.as_default():
-    #         rnn = TextRNN(1, 1, 1, 1, 1, 1)
-    #         l = sess.run(rnn.l, feed_dict={rnn.input_x: x})
-    #         print(l)
+    if platform.system() == 'Windows':
+        import winsound
+
+        for _ in range(5):
+            winsound.Beep(500, 200)
