@@ -5,8 +5,10 @@ from flask import Flask, jsonify, request, make_response, abort
 from data_processing.emotion_mining.emotion_mining import EmotionMiner
 from data_processing.emotion_mining.negation_handling import NegationHandler
 from data_processing.sentiment_miner import Sentimenter
+from importer.data_retrieval.facebook.facebook_parser import FacebookParser
 from importer.database.data_types import Emotion
 from importer.database.mongodb import MongodbStorage
+from neural_networks.convolutional_neural_network.text_cnn import TextCNN
 
 db = MongodbStorage()
 
@@ -99,24 +101,24 @@ def __process_single_post(post):
     # ---------- Sentiment ----------
     # Post sentiment
     sentiments = sentiment.get_post_sentiment_value(post)
-    # Word sentiment
-    sentiment_words = sentiment.get_words_sentiment_value(post)
+    # Sentence sentiment
+    sentiment_sentence = sentiment.get_words_sentiment_value(post)
 
     # ---------- Reactions ----------
     # reactions_rnn = TextRNN.predict(post)
-    # reaction_cnn = TextCNN.predict(post)
-    #
+    reaction_cnn = TextCNN.predict(post)
+
     # reactions_list = [x + y / 2 for x, y in zip(reactions_rnn, reaction_cnn)]
-    # reactions_dict = {}
-    # for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES):
-    #     reactions_dict[reactiontype] = reactions_list[index]
+    reactions_dict = {}
+    for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES):
+        reactions_dict[reactiontype] = reaction_cnn[index]
 
     # Create response
     response = dict(reactions={},
                     emotions=emotions,
                     sentiment=sentiments,
                     emotionWords=edited_emotion_words,
-                    sentimentWords=sentiment_words)
+                    sentimentSentence=sentiment_sentence)
     return response
 
 
