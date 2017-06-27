@@ -127,6 +127,9 @@ class TextRNN(NeuralNetwork):
         # Training
         # ==================================================
         experiment_file = './experiments/pre_trained.csv'
+        if not os.path.exists("./experiments/"):
+            os.makedirs("./experiments/")
+
         with open(experiment_file, 'w+', encoding='utf-8') as file:
             file.write('epoch,val_mse,train_mse')
         num_epochs = 30

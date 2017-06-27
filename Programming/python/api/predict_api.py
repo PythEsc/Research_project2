@@ -3,13 +3,13 @@ import traceback
 from flask import Flask, jsonify, request, make_response, abort
 
 from data_processing.emotion_mining.emotion_mining import EmotionMiner
-from data_processing.emotion_mining.emotion_mining import EmotionMiner
 from data_processing.emotion_mining.negation_handling import NegationHandler
 from data_processing.sentiment_miner import Sentimenter
 from importer.data_retrieval.facebook.facebook_parser import FacebookParser
 from importer.database.data_types import Emotion
 from importer.database.mongodb import MongodbStorage
 from neural_networks.convolutional_neural_network.text_cnn import TextCNN
+from neural_networks.recurrent_neural_network.text_rnn import TextRNN
 
 db = MongodbStorage()
 
@@ -103,19 +103,19 @@ def __process_single_post(post):
     # Post sentiment
     sentiments = sentiment.get_post_sentiment_value(post)
     # Sentence sentiment
-    sentiment_sentence = sentiment.get_words_sentiment_value(post)
+    sentiment_sentence = sentiment.get_sentence_sentiment_value(post)
 
     # ---------- Reactions ----------
-    # reactions_rnn = TextRNN.predict(post)
-    reaction_cnn = TextCNN.predict(post)
+    reactions_rnn = TextRNN.predict(post)
+    reaction_cnn = TextCNN.predict([post])
 
-    # reactions_list = [x + y / 2 for x, y in zip(reactions_rnn, reaction_cnn)]
+    reactions_list = [x + y / 2 for x, y in zip(reactions_rnn, reaction_cnn[0])]
     reactions_dict = {}
-    for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES):
-        reactions_dict[reactiontype] = reaction_cnn[index]
+    for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES[1:-1]):
+        reactions_dict[reactiontype] = float(reactions_list[index])
 
     # Create response
-    response = dict(reactions={},
+    response = dict(reactions=reactions_dict,
                     emotions=emotions,
                     sentiment=sentiments,
                     emotionWords=edited_emotion_words,
