@@ -106,7 +106,7 @@ def __process_single_post(post):
     sentiment_sentence = sentiment.get_sentence_sentiment_value(post)
 
     # ---------- Reactions ----------
-    reactions_rnn = TextRNN.predict(post)
+    reactions_rnn = TextRNN.predict([post])
     reaction_cnn = TextCNN.predict([post])
 
     reactions_list = [x + y / 2 for x, y in zip(reactions_rnn, reaction_cnn[0])]

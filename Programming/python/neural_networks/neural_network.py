@@ -3,16 +3,15 @@ from abc import ABC, abstractmethod
 from importer.database.database_access import DataStorage
 
 
-
 class NeuralNetwork(ABC):
     @staticmethod
     @abstractmethod
-    def predict(content: str) -> list:
+    def predict(content: list) -> list:
         """
         This method predicts the Facebook reactions for a single post
 
-        :param content: The content of a single Facebook post
-        :return: A list containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
+        :param content: A list containing the contents of multiple Facebook post
+        :return: A list of arrays containing the ratio of reactions ['LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY'] per post
         """
         pass
 
@@ -29,4 +28,3 @@ class NeuralNetwork(ABC):
         :param restore: Boolean to restore latest checkpoint or restart training.
         """
         pass
-
