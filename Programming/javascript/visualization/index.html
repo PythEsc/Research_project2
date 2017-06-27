@@ -3,23 +3,33 @@
     <!-- Link to latest version of D3.js and other dependencies needed for the plotting library--->
     <script src="https://d3js.org/d3.v3.min.js"></script>
     <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="title">
+<div class="well">
     <h1>Visualization</h1>
+        <p>This is a visualisation for the prediction of Facebook posts.</p>
 </div>
-<div>
-    <textarea placeholder="input a post..." rows="6" name="content" class="postContent" id="input"></textarea>
-    <button class="Submit">Submit</button>
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <textarea placeholder="Input a post..." rows="6"  name="content" class="postContent form-control"
+                  id="input"></textarea>
+        <button class="Submit btn btn-default">Submit</button>
+    </div>
+    <div class="panel-body">
+        <div id="reactions">
+            <h2>Reaction Distribution</h2>
+        </div>
+        <div id="piechart">
+            <h2>Emotion Analysis</h2>
+        </div>
+    </div>
 </div>
-<div id="reactions">
-    <h2>Reaction Distribution</h2>
 </div>
-<div id="piechart">
-    <h2>Emotion Analysis</h2>
-</div>
+
 
 <script>
 
@@ -145,8 +155,7 @@
             .attr("transform", "rotate(-90)")
             .attr("y", 5)
             .attr("dy", ".71em")
-            .style("text-anchor", "end")
-            .text("Frequency");
+            .style("text-anchor", "end");
 
 
         // Add bar chart
@@ -239,7 +248,7 @@
         var angry = Math.random() * (1 - likes);
         var sad = 1 - likes - angry;
 
-        values = [{label : "Like", frequ : likes}, {label : "Angry", frequ : angry}, {label : "Sad", frequ : sad}]
+        values = [{label: "Like", frequ: likes}, {label: "Angry", frequ: angry}, {label: "Sad", frequ: sad}]
         console.log(values);
         var bar = svgReactions.selectAll(".reactionsBar"); //TODO: Implement the update method.
         bar.data(values);
