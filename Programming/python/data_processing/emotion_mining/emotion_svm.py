@@ -1,5 +1,6 @@
 import os
 import pickle
+import traceback
 from itertools import cycle
 
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ from sklearn.metrics import precision_recall_curve, average_precision_score
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import Pipeline
 
-from importer.database.data_types import Emotion, Sentence
+from importer.database.data_types import Emotion, Sentence, Comment, Post
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
 
@@ -133,35 +134,56 @@ class CategoryClassifier:
         plt.legend(loc="lower right")
         plt.show()
 
-    def predict_non_annotated_sentences(self):
+    """
+        This method calculates the emotions for a post AND also uses the SVM to predict the emotions for a 
+        non-annotated sentence. 
+    """
+    def calculate_emotion_for_post(self):
         count_non_annotated = 0
         emotions_statistics = [0] * len(Emotion.EMOTION_TYPES)
-        for comment_object in db.iterate_single_comment({}):
-            comment = comment_object.content
-            output = self.nlp.annotate(comment, self.properties_pos)
-            if not isinstance(output, dict):
-                return
-            sentences = []
+        filter = {Post.COLL_COMMENT_EMOTION: {'$exists': False},
+                  Post.COLL_LINK: {"$regex": "https://www.facebook.com/tesco/.+"}}
+        for post in self.db.iterate_single_post(filter):
+            try:
+                filter_comment = {Comment.COLL_PARENT_ID: post.post_id}
 
-            for sentence in output.get("sentences", []):
-                begin = sentence["tokens"][0]
-                end = sentence["tokens"][-1]
+                emotions_post = [0] * len(Emotion.EMOTION_TYPES)
+                for comment_object in self.db.iterate_single_comment(filter_comment, False):
+                    comment = comment_object.content
+                    output = self.nlp.annotate(comment, self.properties_pos)
+                    if not isinstance(output, dict):
+                        return
+                    sentences = []
 
-                start_index = begin['characterOffsetBegin']
-                end_index = end['characterOffsetEnd']
-                sentence_splitted = comment[start_index: end_index]
-                sentences.append(sentence_splitted)
-            for sent_index, sentence in enumerate(output.get("sentences", [])):
-                actual_sentence = sentences[sent_index]
-                lookedup_sentence = db.select_single_sentence({Sentence.COLL_CONTENT: actual_sentence})
-                if lookedup_sentence is not None:
-                    continue
-                sentence_emotion = self.clf.predict([actual_sentence])
-                if len(sentence_emotion) > 0:
-                    emotions_statistics = [x + y for x, y in zip(emotions_statistics, sentence_emotion)]
-                    count_non_annotated += 1
-                    new_sentence = Sentence.create_from_single_values(actual_sentence, sentence_emotion[0].tolist(), True)
-                    db.insert_sentence(new_sentence)
+                    for sentence in output.get("sentences", []):
+                        begin = sentence["tokens"][0]
+                        end = sentence["tokens"][-1]
+
+                        start_index = begin['characterOffsetBegin']
+                        end_index = end['characterOffsetEnd']
+                        sentence_splitted = comment[start_index: end_index]
+                        sentences.append(sentence_splitted)
+                    # Because I am running already through everything, I can already calculate the overall emotion distribution
+                    for sent_index, sentence in enumerate(output.get("sentences", [])):
+                        actual_sentence = sentences[sent_index]
+                        lookedup_sentence = db.select_single_sentence({Sentence.COLL_CONTENT: actual_sentence})
+                        if lookedup_sentence is not None:
+                            emotions_post = [x + y for x, y in zip(emotions_post, lookedup_sentence.emotion)]
+                            continue
+                        sentence_emotion = self.clf.predict([actual_sentence])
+                        if len(sentence_emotion) > 0:
+                            emotions_statistics = [x + y for x, y in zip(emotions_statistics, sentence_emotion)]
+                            emotions_post = [x + y for x, y in zip(emotions_post, sentence_emotion)]
+                            count_non_annotated += 1
+                            new_sentence = Sentence.create_from_single_values(actual_sentence, sentence_emotion[0].tolist(), True)
+                            db.insert_sentence(new_sentence)
+                if len(emotions_post) == 1:
+                    emotions_post = emotions_post[0].tolist()
+                post.comment_emotion = emotions_post
+                self.db.update_post(post)
+            except Exception:
+                print("Error while processing post with id: " + post.post_id)
+                traceback.print_exc()
         return count_non_annotated, emotions_statistics
 
 if __name__ == '__main__':
@@ -176,7 +198,7 @@ if __name__ == '__main__':
      cat_clf.train()
      cat_clf.save_model_to_file(filename)
 
-    count_non_annotated, emotions_statistics = cat_clf.predict_non_annotated_sentences()
+    count_non_annotated, emotions_statistics = cat_clf.calculate_emotion_for_post()
     print("Number of predicted non-annotated sentences: ", str(count_non_annotated))
     sum_of_emotions = sum(emotions_statistics)
     emotions_statistics_normalized = [x/sum_of_emotions for x in emotions_statistics]
