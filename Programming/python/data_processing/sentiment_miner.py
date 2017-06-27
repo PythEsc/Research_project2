@@ -59,6 +59,12 @@ class Sentimenter:
                 traceback.print_exc()
 
     def get_post_sentiment_value(self, content: str):
+        """
+        Get the sentiment of a single post
+
+        :param content: The content of the post
+        :return: The averaged sentiment over all sentences in the post
+        """
         output = self.nlp.annotate(content, properties=self.properties_sentiment)
         sentences = output['sentences']
 
@@ -77,40 +83,37 @@ class Sentimenter:
         sentiment_ratio = sentiment_counter / len(sentences)
         return sentiment_ratio
 
-    # TODO: This obviously is no good solution: 1. negation handling is lost 2. The sentiment of a whole sentence is
-    # not the sum of the single words (Try with "Your salad is awful")
-    def get_words_sentiment_value(self, content: str) -> list:
-        # Split the sentence into single tokens and build a new "content" in which each word is seperated by a dot
-        tokens = nltk.word_tokenize(content)
-        merged_tokens = ". ".join(tokens)
+    def get_sentence_sentiment_value(self, content: str) -> list:
+        """
+        Get the sentiment for each sentence in a single post
 
-        # Annotate this new content (in which each token will be recognized as sentence and hence annotated for its own)
-        output = self.nlp.annotate(merged_tokens, properties=self.properties_sentiment)
-
-        # Iterate over the sentences/tokens
+        :param content: The content of the post
+        :return: A list containing one structured-object per sentence built like this: (str, int, int, int)
+        """
+        output = self.nlp.annotate(content, properties=self.properties_sentiment)
         sentences = output['sentences']
-        sentiment_words = []
+
+        sentence_sentiment = []
+
         for sentence in sentences:
+            sentiment_counter = 0
+
+            sentence_begin = sentence["tokens"][0]["characterOffsetBegin"]
+            sentence_end = sentence["tokens"][-1]["characterOffsetEnd"]
+            sentence_content = content[sentence_begin:sentence_end]
+
             sentiment = sentence['sentiment']
+            if sentiment == 'Negative':
+                sentiment_counter -= 1
+            if sentiment == 'Verynegative':
+                sentiment_counter -= 2
+            elif sentiment == 'Positive':
+                sentiment_counter += 1
+            elif sentiment == 'Verypositive':
+                sentiment_counter += 2
 
-            # If the sentiment is not neutral we've found a sentiment word
-            if sentiment != 'Neutral':
-                # We take the first token (the other should be a dot)
-                token = sentence["tokens"][0]
-
-                # We lookup the token in the original list of tokens to find its index and hence the number of manually
-                # inserted dots. This is necessary to modify the characterOffset
-                for index, token_from_list in enumerate(tokens):
-                    if token_from_list == token["originalText"]:
-                        break
-
-                sentiment_words.append(
-                    (token["originalText"],
-                     token["characterOffsetBegin"] - (index + 1),
-                     token["characterOffsetEnd"] - (index + 1),
-                     sentiment))
-
-        return sentiment_words
+            sentence_sentiment.append((sentence_content, sentence_begin, sentence_end, sentiment_counter))
+        return sentence_sentiment
 
 
 if __name__ == '__main__':
