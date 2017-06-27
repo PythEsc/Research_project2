@@ -81,7 +81,7 @@
                 updateBars(values);
 
                 //Update the emotion word table
-                createEmotionWordTable(response);
+                createEmotionWordTable(response.emotionWords);
             } else {
 
                 alert('Something went wrong: ' + xhr.response);
@@ -242,8 +242,6 @@
     //Initialization (Empty Donut).
     updateDonut(initDonut());
 
-    //updateBars(); //TODO: Remove this test line
-
 
     function updateBars(values) {
 
@@ -253,7 +251,7 @@
         var angry = Math.random() * (1 - likes);
         var sad = 1 - likes - angry;
 
-        values = [{label : "Like", frequ : likes}, {label : "Angry", frequ : angry}, {label : "Sad", frequ : sad}]
+        values = [{label: "Like", frequ: likes}, {label: "Angry", frequ: angry}, {label: "Sad", frequ: sad}]
         console.log(values);
         var bar = svgReactions.selectAll(".reactionsBar"); //TODO: Implement the update method.
         bar.data(values);
@@ -274,14 +272,40 @@
             .attr("width", x.rangeBand());
     }
 
-    function createEmotionWordTable(data){
+    function createEmotionWordTable(data) {
+        var columns = [];
+
+        var j = 0;
+        for(var field in data){
+            console.log(field);
+            columns[j] = field;
+            j++;
+        }
         //Select the table and clear the old data
-        var tab = d3.select("#emotionWords");
-        tab.selectAll("*").remove();
+        var tbody = d3.select("#emotionWords");
+        tbody.selectAll("*").remove();
 
         //TODO: Build the new table
+        console.log(data);
 
+        // create a row for each object in the data
+        var rows = tbody.selectAll('tr')
+            .data(data)
+            .enter()
+            .append('tr');
 
+        // create a cell in each row for each column
+        var cells = rows.selectAll('td')
+            .data(function (row) {
+                return columns.map(function (column) {
+                    return {column: column, value: row[column]};
+                });
+            })
+            .enter()
+            .append('td')
+            .text(function (d) {
+                return d.value;
+            });
     }
 
     //Updates the donut
