@@ -20,6 +20,19 @@
 <div id="piechart">
     <h2>Emotion Analysis</h2>
 </div>
+<div id="emotionWordTable">
+    <h2>Emotion Words</h2>
+    <table id="emotionWords">
+        <tr>
+            <td>Lorem Ipsum</td>
+            <td>Dolor Sit Amet</td>
+        </tr>
+        <tr>
+            <td>This is another row</td>
+            <td>Let's see what we get.</td>
+        </tr>
+    </table>
+</div>
 
 <script>
 
@@ -66,6 +79,9 @@
 
                 //Update the bars
                 updateBars(values);
+
+                //Update the emotion word table
+                createEmotionWordTable(response);
             } else {
 
                 alert('Something went wrong: ' + xhr.response);
@@ -86,7 +102,7 @@
     // set the ranges
     var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
 
-    var y = d3.scale.linear().range([height, 0]); //Set the range to 1 and 0 since we are dealing with ratios (gives a better impression when comparing posts).
+    var y = d3.scale.linear().range([height, 0]);
 
 
     // define the axis
@@ -124,9 +140,7 @@
 
         // scale the range of the data
         x.domain(Object.keys(data.reactions));
-        y.domain([0, d3.max(values, function (d) {
-            return d.frequ;
-        })]);
+        y.domain([0, 1]);
         // add axis
         svgReactions.append("g")
             .attr("class", "x axis")
@@ -258,37 +272,16 @@
                 return height - y(d.frequ);
             })
             .attr("width", x.rangeBand());
+    }
+
+    function createEmotionWordTable(data){
+        //Select the table and clear the old data
+        var tab = d3.select("#emotionWords");
+        tab.selectAll("*").remove();
+
+        //TODO: Build the new table
 
 
-        /*
-         selection = document.getElementById("dropdown");
-
-         y.domain([0, d3.max(data, function(d){
-         return +d[selection.value];})]);
-
-         yAxis.scale(y);
-
-         d3.selectAll(".rectangle")
-         .transition()
-         .attr("height", function(d){
-         return height - y(+d[selection.value]);
-         })
-         .attr("x", function(d, i){
-         return (width / data.length) * i ;
-         })
-         .attr("y", function(d){
-         return y(+d[selection.value]);
-         })
-         .ease("linear")
-         .select("title")
-         .text(function(d){
-         return d.State + " : " + d[selection.value];
-         });
-
-         d3.selectAll("g.y.axis")
-         .transition()
-         .call(yAxis);
-         */
     }
 
     //Updates the donut
