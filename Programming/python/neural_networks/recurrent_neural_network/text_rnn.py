@@ -110,7 +110,7 @@ class TextRNN(NeuralNetwork):
             print("Words not in pre-trained vocab: {:d}".format(words_not_in_we))
 
         # Randomly shuffle data
-        np.random.seed(30)
+        np.random.seed(10)
         shuffle_indices = np.random.permutation(np.arange(len(y)))
         x_shuffled = x[shuffle_indices]
         y_shuffled = np.copy(y)
@@ -120,19 +120,19 @@ class TextRNN(NeuralNetwork):
 
         # Split train/dev set
         dev_sample_index = -1 * int(sample_percentage * float(len(y)))
-        x_train, x_dev = x[:dev_sample_index], x[dev_sample_index:]
-        y_train, y_dev = y[:dev_sample_index], y[dev_sample_index:]
+        x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
+        y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
         print("\nTrain/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
         # Training
         # ==================================================
         experiment_file = './experiments/pre_trained.csv'
         with open(experiment_file, 'w+', encoding='utf-8') as file:
-            file.write('epoch,val_mse,train_mse')
+            file.write('val_mse,train_mse')
         num_epochs = 30
         lstm_layers = 1
         batch_size = 200
-        learning_rate = 0.0001
+        learning_rate = 0.001
 
         print('\nStarting training...\n')
         with tf.Graph().as_default():
@@ -150,7 +150,7 @@ class TextRNN(NeuralNetwork):
                     embedding=we.embd
                 )
 
-                saver = tf.train.Saver()
+                saver = tf.train.Saver(max_to_keep=30)
                 if restore:
                     print('restore')
                     restore_model(sess, './checkpoints/')
@@ -193,9 +193,10 @@ class TextRNN(NeuralNetwork):
                         checkpoint_dir = os.path.abspath("./checkpoints/")
                         if not os.path.exists(checkpoint_dir):
                             os.makedirs(checkpoint_dir)
-                        save_model(saver, sess, "./checkpoints/rnn.ckpt")
+                        save_model(saver, sess, "./checkpoints/rnn-5.ckpt", global_step=int((i + 1) / num_batches_per_epoch))
                         # saver.save(sess, "./checkpoints/rnn.ckpt")
-                        vocab_processor.save(os.path.join("./checkpoints", "vocab"))
+                        vocab_processor.save(os.path.join("./checkpoints", "vocab"
+                                                          ))
 
                         # Validation accuracy
                         errors = []
@@ -206,7 +207,7 @@ class TextRNN(NeuralNetwork):
                         errors.append(error)
                         mse = np.mean(errors)
                         with open(experiment_file, 'a', encoding='utf-8') as file:
-                            file.write('\n{},{},{}'.format(epoch, np.mean(errors), train_mserror))
+                            file.write('\n{},{}'.format(np.mean(errors), train_mserror))
 
                         if train_mserror < required_mse:
                             print("Reached the required mean squared error. Stop training")
@@ -254,7 +255,9 @@ class TextRNN(NeuralNetwork):
         if verbose:
             print('\nLoading saved vocabulary...')
             t = time()
-        vocab_path = os.path.join("./checkpoints", "vocab")
+
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        vocab_path = os.path.join(package_directory, "checkpoints", "vocab")
         vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
         x = np.array(list(vocab_processor.transform(clean_text(content))))
         if verbose: print('Loaded in {:.3f}s.'.format(time() - t))
@@ -267,8 +270,10 @@ class TextRNN(NeuralNetwork):
                 if verbose:
                     print('\nLoading saved model...')
                     t = time()
-                saver = tf.train.import_meta_graph("{}.meta".format("./checkpoints/rnn.ckpt"))
-                saver.restore(sess, "./checkpoints/rnn.ckpt")
+
+                ckpt_path = os.path.join(package_directory, 'checkpoints', 'rnn.ckpt-5')
+                saver = tf.train.import_meta_graph("{}.meta".format(ckpt_path))
+                saver.restore(sess, ckpt_path)
                 if verbose: print('Model loaded in {:.3f}s.'.format(time() - t))
 
                 # Get the placeholders from the graph by name
@@ -300,7 +305,7 @@ class TextRNN(NeuralNetwork):
 if __name__ == '__main__':
     db = MongodbStorage()
 
-    TextRNN.train(db, required_mse=0.1, restore=False)
+    # TextRNN.train(db, required_mse=0.1, restore=False)
     # TextRNN.train(db, required_mse=0.1, restore=True)
 
 

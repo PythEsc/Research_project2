@@ -111,7 +111,8 @@ class TextCNN(NeuralNetwork):
         :return: A list of lists containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
         """
         # CHECKPOINT NEEDS TO BE LATEST CHECKPOINT YOU TRAINED
-        checkpoint_for_evaluation = "runs/1498554852/checkpoints/"
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        checkpoint_for_evaluation = os.path.join(package_directory, "runs/1498554852/checkpoints/")
 
         checkpoint_file = tf.train.latest_checkpoint(checkpoint_for_evaluation)
         vocab_path = os.path.join(checkpoint_for_evaluation, "..", "vocab")

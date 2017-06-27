@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def save_model(saver: tf.train.Saver, sess: tf.Session, checkpoint_dir: str):
+def save_model(saver: tf.train.Saver, sess: tf.Session, checkpoint_dir: str, global_step=None):
     """
     Save a model that was initialized with the provided Session.
 
@@ -11,7 +11,7 @@ def save_model(saver: tf.train.Saver, sess: tf.Session, checkpoint_dir: str):
     :return: 
     """
     print("Saving model to {}\n".format(str(checkpoint_dir)))
-    saver.save(sess, checkpoint_dir)
+    saver.save(sess, checkpoint_dir, global_step=global_step)
 
 
 def restore_model(sess: tf.Session, checkpoint_dir: str) -> tf.Session:
