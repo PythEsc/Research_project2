@@ -3,26 +3,58 @@
     <!-- Link to latest version of D3.js and other dependencies needed for the plotting library--->
     <script src="https://d3js.org/d3.v3.min.js"></script>
     <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type='text/javascript' src='touchHover.js'></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="title">
+<div class="well">
     <h1>Visualization</h1>
+        <p>This is a visualisation for the reaction prediction and analysis of the emotions and sentiments of Facebook posts.</p>
 </div>
-<div>
-    <textarea placeholder="input a post..." rows="6" name="content" class="postContent" id="input"></textarea>
-    <button class="Submit">Submit</button>
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <textarea placeholder="Input a post..." rows="6"  name="content" class="postContent form-control"
+                  id="input"></textarea>
+        <button class="Submit btn btn-default">Submit</button>
+    </div>
+    <div class="panel-body">
+        <div id="reactions">
+            <h2>Reaction Distribution</h2>
+        </div>
+        <div id="piechart">
+            <h2>Emotion Analysis</h2>
+        </div>
+        <div id="highlight_output">
+            <h2>Highlighting emotions</h2>
+        </div>
+        <div id="highlight_sentiment">
+            <h2>Highlighting sentiments</h2>
+        </div>
+    </div>
 </div>
-<div id="reactions">
-    <h2>Reaction Distribution</h2>
-</div>
-<div id="piechart">
-    <h2>Emotion Analysis</h2>
 </div>
 
 <script>
+    function highlight(textarea, text, color, hovertext, output, title)
+    {
+        var inner_text = textarea;
+        var index = inner_text.indexOf(text);
+        if ( index >= 0 )
+        {
+            var newValue = "<abbr title='"+ hovertext +"'><span style='background-color:"+color+";'>" + text + "</span></abbr>";
+            if(inner_text.indexOf(title) >= 0)
+                title = '';
+            inner_text = title + inner_text.replace(new RegExp(text, 'g'),newValue);
+            $('div#' + output).html(inner_text);
+            return inner_text;
+        }
+        return textarea;
 
+    }
     d3.select(".Submit").on("click", function () {
         //Retrieve the text from the textfield.
         var text = document.getElementById("input").value;
@@ -41,6 +73,47 @@
                 var response = xhr.response;
                 console.log("Received response: " + response);
 
+                var emotion_words = [];
+                var j = 0;
+                var textarea = $('textarea#input').val();
+                var textarea_sentiment = $('textarea#input').val();
+                for (var i in response.emotionWords) {
+                    var word = response.emotionWords[i][0];
+                    if ( emotion_words.indexOf(word) >= 0)
+                        continue;
+                    emotion_words[j] = word;
+                    var emotionRatio = response.emotionWords[i][3];
+                    var emotionRatioText = JSON.stringify(emotionRatio, null, 2);
+                    var color = "yellow";
+                    textarea = highlight(textarea, emotion_words[j], color, emotionRatioText, 'highlight_output','<h2>Highlighting emotions</h2>');
+                    j++;
+                }
+
+                var sentiments= [];
+                j = 0;
+                for (var i in response.sentimentSentence) {
+                    var sentence = response.sentimentSentence[i][0];
+                    if (sentiments.indexOf(sentence)>= 0)
+                        continue;
+                    sentiments[j] = sentence;
+                    var sentiment_value = response.sentimentSentence[i][3];
+                    var color = "yellow";
+                    if(sentiment_value > 0.5) {
+                        sentiment_value = 'Positive: ' + sentiment_value;
+                        color = "green";
+                    }
+                    else if(sentiment_value < -0.5){
+                        sentiment_value = 'Negative: ' + sentiment_value;
+                        color = "red";
+                    }
+                    else{
+                        sentiment_value = 'Neutral: ' + sentiment_value;
+                        color = "yellow";
+                    }
+                    textarea_sentiment = highlight(textarea_sentiment, sentiments[j], color, sentiment_value,
+                        'highlight_sentiment', '<h2>Highlighting sentiments</h2>');
+                    j++;
+                }
                 //Update the emotions
                 var emotions = [];
 
@@ -59,7 +132,7 @@
 
                 j = 0;
                 for (var i in response.reactions) {
-                    values[j] = {label: i, frequ: response.reactions[i]};
+                    values[i] = response.reactions[i];
                     j++;
 
                 }
@@ -124,9 +197,7 @@
 
         // scale the range of the data
         x.domain(Object.keys(data.reactions));
-        y.domain([0, d3.max(values, function (d) {
-            return d.frequ;
-        })]);
+        y.domain([0, 1]);
         // add axis
         svgReactions.append("g")
             .attr("class", "x axis")
@@ -145,8 +216,7 @@
             .attr("transform", "rotate(-90)")
             .attr("y", 5)
             .attr("dy", ".71em")
-            .style("text-anchor", "end")
-            .text("Frequency");
+            .style("text-anchor", "end");
 
 
         // Add bar chart
@@ -235,26 +305,32 @@
 
 
         //TODO: Remove test code
-        var likes = Math.random();
-        var angry = Math.random() * (1 - likes);
-        var sad = 1 - likes - angry;
+        var angry = values["ANGRY"];
+        var love =  values["LOVE"];
+        var haha =  values["HAHA"];
+        var wow =  values["WOW"];
+        var sad =  values["SAD"];
 
-        values = [{label : "Like", frequ : likes}, {label : "Angry", frequ : angry}, {label : "Sad", frequ : sad}]
-        console.log(values);
+        values = [{label: "Sad", frequ: sad},
+            {label: "Angry", frequ: angry},
+            {label: "Haha", frequ: haha},
+            {label: "Wow", frequ: wow},
+            {label: "Love", frequ: love}];
+        var max = -1;
+        for(var i in values){
+            if(values[i] > max)
+                max = values[i];
+        }
         var bar = svgReactions.selectAll(".reactionsBar"); //TODO: Implement the update method.
         bar.data(values);
-        console.log("Bar: " + bar);
-        console.log(bar);
         svgReactions.selectAll(".reactionsBar").transition()
             .attr("x", function (d) {
-                console.log("D has value:" + d.label);
                 return x(d.label);
             })
             .attr("y", function (d) {
                 return y(d.frequ);
             })
             .attr("height", function (d) {
-                console.log(d.frequ);
                 return height - y(d.frequ);
             })
             .attr("width", x.rangeBand());

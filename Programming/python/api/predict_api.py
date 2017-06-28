@@ -1,6 +1,7 @@
 import traceback
 
 from flask import Flask, jsonify, request, make_response, abort
+from flask_cors import CORS
 
 from data_processing.emotion_mining.emotion_mining import EmotionMiner
 from data_processing.emotion_mining.negation_handling import NegationHandler
@@ -18,6 +19,7 @@ emotion = EmotionMiner(db)
 sentiment = Sentimenter(db)
 
 app = Flask(__name__)
+cors = CORS(app, supports_credentials=True)
 
 
 @app.route('/predict/single', methods=['POST'])
@@ -106,10 +108,10 @@ def __process_single_post(post):
     sentiment_sentence = sentiment.get_sentence_sentiment_value(post)
 
     # ---------- Reactions ----------
-    reactions_rnn = TextRNN.predict(post)
+    reactions_rnn = TextRNN.predict([post])
     reaction_cnn = TextCNN.predict([post])
 
-    reactions_list = [x + y / 2 for x, y in zip(reactions_rnn, reaction_cnn[0])]
+    reactions_list = [(x + y) / 2 for x, y in zip(reactions_rnn[0], reaction_cnn[0])]
     reactions_dict = {}
     for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES[1:-1]):
         reactions_dict[reactiontype] = float(reactions_list[index])
