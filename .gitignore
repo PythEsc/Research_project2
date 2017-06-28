@@ -18,3 +18,4 @@ Programming/python/neural_networks/convolutional_neural_network/experiments/pre_
 *experiment_results.xlsx
 \.idea/
 *.pyc
+*.pickle
