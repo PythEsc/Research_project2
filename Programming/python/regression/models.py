@@ -17,8 +17,9 @@ from tensorflow.contrib import learn
 
 
 class Regressor():
-    def __init__(self, model='LinearRegression'):
+    def __init__(self, db: DataStorage, model='LinearRegression'):
         self.model = model
+        self.db = db
 
         if self.model == 'LinearRegression':
             self.regressor = LinearRegression(fit_intercept=True, normalize=True)
@@ -28,12 +29,12 @@ class Regressor():
         self.package_directory = os.path.dirname(os.path.abspath(__file__))
         self.model_path = os.path.join(self.package_directory, 'model.sav')
 
-    def fit(self, db: DataStorage, sample_percentage: float = 0.1):
+    def fit(self, sample_percentage: float = 0.1):
         print('Started training...')
 
         # Load data
         print('\nLoading training data...')
-        x_text, y, emotions = get_training_set_with_emotions(db)
+        x_text, y, emotions = get_training_set_with_emotions(self.db)
         x_text = clean_text(x_text)
 
         # Randomly Shuffle the data
@@ -90,7 +91,7 @@ class Regressor():
 
         pickle.dump(self.regressor, open(self.model_path, 'wb'))
 
-    def predict(self, db: DataStorage, content: list) -> list:
+    def predict(self, content: list) -> list:
         self.regressor = pickle.load(open(self.model_path, 'rb'))
 
         rnn_out = TextRNN.predict(content)
@@ -102,7 +103,7 @@ class Regressor():
         #     pred = [np.mean([rnn_out[i][ii], cnn_out[i][ii]]) for ii in range(5)]
         #     out.append(pred)
 
-        nh = NegationHandler(db)
+        nh = NegationHandler(self.db)
         nh_out = []
         for x in content:
             nh_out.append(nh.get_emotion(x))
@@ -115,11 +116,11 @@ class Regressor():
 
 if __name__ == '__main__':
     db = MongodbStorage()
-    reg = Regressor()
-    reg.fit(db)
+    reg = Regressor(db)
+    reg.fit()
 
     content = [
         'This is me.'
     ]
 
-    print(reg.predict(db, content))
+    print(reg.predict(content))

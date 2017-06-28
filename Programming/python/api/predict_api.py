@@ -9,14 +9,14 @@ from data_processing.sentiment_miner import Sentimenter
 from importer.data_retrieval.facebook.facebook_parser import FacebookParser
 from importer.database.data_types import Emotion
 from importer.database.mongodb import MongodbStorage
-from neural_networks.convolutional_neural_network.text_cnn import TextCNN
-from neural_networks.recurrent_neural_network.text_rnn import TextRNN
+from regression.models import Regressor
 
 db = MongodbStorage()
 
 advanced_emotion = NegationHandler(db)
 emotion = EmotionMiner(db)
 sentiment = Sentimenter(db)
+regressor = Regressor(db)
 
 app = Flask(__name__)
 cors = CORS(app, supports_credentials=True)
@@ -108,10 +108,8 @@ def __process_single_post(post):
     sentiment_sentence = sentiment.get_sentence_sentiment_value(post)
 
     # ---------- Reactions ----------
-    reactions_rnn = TextRNN.predict([post])
-    reaction_cnn = TextCNN.predict([post])
 
-    reactions_list = [(x + y) / 2 for x, y in zip(reactions_rnn[0], reaction_cnn[0])]
+    reactions_list = regressor.predict([post])[0]
     reactions_dict = {}
     for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES[1:-1]):
         reactions_dict[reactiontype] = float(reactions_list[index])
