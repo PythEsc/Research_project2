@@ -150,13 +150,11 @@ if __name__ == '__main__':
     # TextRNN.train(db, required_mse=0.1, restore=True)
 
 
-    content = ["This is just some sample post. I will try to use real posts later. Your salad is really disgusting!!!",
-               "I really love to shop at Tesco!",
-               "Your employees are so rude!",
-               "Brought two packets of 'Snackers' chicken bites 60g from Ely store. "
-               "The two packets felt very different in weight so I weighed them (unopened). "
-               "One was 62g however the other was only 40g. Is this how Aldi keeps costs low, "
-               "by only filling packets up by two-thirds?"]
+    content = [
+        'This is me.',
+        'I hate your supermarket!',
+        'Your employees are so rude!',
+    ]
 
     predicted_reactions = TextCNN.predict(content)
 

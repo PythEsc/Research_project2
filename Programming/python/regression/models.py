@@ -7,6 +7,8 @@ from pre_trained_embeddings.word_embeddings import WordEmbeddings
 from importer.database.mongodb import MongodbStorage
 from data_processing.emotion_mining.negation_handling import NegationHandler
 from importer.database.data_types import Post
+import pickle
+import os
 
 from sklearn import metrics
 from sklearn.linear_model import LinearRegression
@@ -22,6 +24,9 @@ class Regressor():
             self.regressor = LinearRegression(fit_intercept=True, normalize=True)
         else:
             raise ValueError('Unknown Model!')
+
+        self.package_directory = os.path.dirname(os.path.abspath(__file__))
+        self.model_path = os.path.join(self.package_directory, 'model.sav')
 
     def fit(self, db: DataStorage, sample_percentage: float = 0.1):
         print('Started training...')
@@ -68,12 +73,11 @@ class Regressor():
             pred = [np.mean([rnn_out_dev[i][ii], cnn_out_dev[i][ii]]) for ii in range(5)]
             out_dev.append(pred)
 
-        output = [np.hstack((out[i], emotions_train[i])) for i in range(len(x_train))]
-        output_dev = [np.hstack((out_dev[i], emotions_dev[i])) for i in range(len(x_dev))]
+        output = [np.hstack((rnn_out[i], emotions_train[i])) for i in range(len(x_train))]
+        output_dev = [np.hstack((rnn_out_dev[i], emotions_dev[i])) for i in range(len(x_dev))]
 
         print('regression')
         self.regressor.fit(output, y_train)
-        # self.regressor.fit(rnn_out, y_train)
 
         y_pred_n = self.regressor.predict(output_dev)
 
@@ -84,14 +88,26 @@ class Regressor():
         mse = metrics.mean_squared_error(y_dev, y_pred)
         print('MSE: {}'.format(mse))
 
-    def predict(self, content: list) -> list:
+        pickle.dump(self.regressor, open(self.model_path, 'wb'))
+
+    def predict(self, db: DataStorage, content: list) -> list:
+        self.regressor = pickle.load(open(self.model_path, 'rb'))
+
         rnn_out = TextRNN.predict(content)
+
+        # cnn_out = TextCNN.predict(content)
+
+        # out = []
+        # for i in range(len(content)):
+        #     pred = [np.mean([rnn_out[i][ii], cnn_out[i][ii]]) for ii in range(5)]
+        #     out.append(pred)
 
         nh = NegationHandler(db)
         nh_out = []
         for x in content:
             nh_out.append(nh.get_emotion(x))
 
+        # output = [np.hstack((out[i], nh_out[i])) for i in range(len(content))]
         output = [np.hstack((rnn_out[i], nh_out[i])) for i in range(len(content))]
 
         return self.regressor.predict(output)
@@ -103,9 +119,7 @@ if __name__ == '__main__':
     reg.fit(db)
 
     content = [
-        'This is me.',
-        'I hate your supermarket!',
-        'Your employees are so rude!',
+        'This is me.'
     ]
 
-    print(reg.predict(content))
+    print(reg.predict(db, content))

@@ -249,7 +249,7 @@ class TextRNN(NeuralNetwork):
 
     @staticmethod
     def predict(content: list) -> list:
-        verbose = True
+        verbose = False
         if verbose:
             print('\nPredicting reactions for \"{}\" ...'.format(content))
             T = time()
