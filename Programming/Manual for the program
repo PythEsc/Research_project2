@@ -1,9 +1,9 @@
 How to start the visualisation: 
 1. One need to start the mongoDB with the data from the dropbox folder. 
-2. One need to start the CoreNLP server. 
-3. One need to download the rnn-checkpoint from the dropbox folder and put it in "python/neural_networks/recurrent_neural_network/checkpoints". 
-4. One need run a CNN for some time (checkpoint is too big) and link the latest checkpoint folder name in the text_cnn "predict" method. 
-5. One need to download the trained glove model from dropbox and put it in "python/pre_trained_embeddings/glove/". 
+2. One need to start the CoreNLP server.
+3. One need to download the trained glove model from dropbox and put it in "python/pre_trained_embeddings/glove/".
+4. One need to download the rnn-checkpoint from the dropbox folder and put it in "python/neural_networks/recurrent_neural_network/checkpoints".
+5. One need run a CNN for some time (checkpoint is too big) and link the latest checkpoint folder name in the text_cnn "predict" method.
 6. Now all models are present. 
 7. Now one need to start the API for the server (Flask) -> "python/api/predict_api.py"
 8. Now one can run the "javascript/visualization/index.html" file to open the visualisation. One can now put a facebook post in the textarea (just the plan text).

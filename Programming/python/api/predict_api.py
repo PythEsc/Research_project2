@@ -1,7 +1,7 @@
 import traceback
 
 from flask import Flask, jsonify, request, make_response, abort
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 
 from data_processing.emotion_mining.emotion_mining import EmotionMiner
 from data_processing.emotion_mining.negation_handling import NegationHandler
