@@ -3,6 +3,8 @@
     <!-- Link to latest version of D3.js and other dependencies needed for the plotting library--->
     <script src="https://d3js.org/d3.v3.min.js"></script>
     <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type='text/javascript' src='touchHover.js'></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
           integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
@@ -26,13 +28,39 @@
         <div id="piechart">
             <h2>Emotion Analysis</h2>
         </div>
+        <div id="highlight_output">
+            <h2>Highlighting the output</h2>
+        </div>
     </div>
 </div>
 </div>
 
 
+<style>
+.highlight
+{
+background-color:yellow;
+}
+</style>
 <script>
+    function highlight(textarea, text, emotionRatio)
+    {
+        var inner_text = textarea;
+        var index = inner_text.indexOf(text);
+        if ( index >= 0 )
+        {
+            var emotionRatioText = JSON.stringify(emotionRatio, null, 2);
+            var newValue = "<abbr title='"+ emotionRatioText +"'><span class='highlight'>" + text + "</span></abbr>";
+            var title = ' <h2>Highlighting the output</h2>';
+            if(inner_text.indexOf(title) >= 0)
+                title = '';
+            inner_text = title + inner_text.replace(text,newValue);
+            $('div#highlight_output').html(inner_text);
+            return inner_text;
+        }
+        return textarea;
 
+    }
     d3.select(".Submit").on("click", function () {
         //Retrieve the text from the textfield.
         var text = document.getElementById("input").value;
@@ -51,6 +79,15 @@
                 var response = xhr.response;
                 console.log("Received response: " + response);
 
+                var emotion_words = [];
+                j = 0;
+                var textarea = $('textarea#input').val();
+                for (var i in response.emotionWords) {
+                    emotion_words[j] = response.emotionWords[i][0];
+                    var emotionRatio = response.emotionWords[i][3];
+                    textarea = highlight(textarea, emotion_words[j], emotionRatio);
+                    j++;
+                }
                 //Update the emotions
                 var emotions = [];
 

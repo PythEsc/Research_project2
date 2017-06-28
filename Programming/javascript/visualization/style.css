@@ -50,3 +50,24 @@ polyline{
     height: 400px;
     float:left;
 }
+#highlight_output{
+    width: 500px;
+    height: 400px;
+    float:left;
+}
+
+abbr{
+	cursor: hand !important;
+}
+
+.tooltip
+{
+	position:absolute;
+	background-color:#eeeefe;
+	font-size: smaller;
+	padding:4px;
+	width: 160px;
+	box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+	-moz-box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+	-webkit-box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+}
