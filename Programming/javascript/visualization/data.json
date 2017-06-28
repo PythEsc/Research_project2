@@ -42,9 +42,11 @@
     "TRUST": 0
   },
   "reactions": {
-    "Like" : 0.2,
-    "Angry" : 0.3,
-    "Sad" : 0.5
+    "Sad" : 0.0,
+    "Angry" : 0.0,
+    "Wow" : 0.0,
+    "Haha" : 0.0,
+    "Love" : 0.0
   },
   "sentiment": -1.0,
   "sentimentWords": [

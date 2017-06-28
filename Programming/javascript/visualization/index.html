@@ -132,7 +132,7 @@
 
                 j = 0;
                 for (var i in response.reactions) {
-                    values[j] = {label: i, frequ: response.reactions[i]};
+                    values[i] = response.reactions[i];
                     j++;
 
                 }
@@ -197,9 +197,7 @@
 
         // scale the range of the data
         x.domain(Object.keys(data.reactions));
-        y.domain([0, d3.max(values, function (d) {
-            return d.frequ;
-        })]);
+        y.domain([0, 1]);
         // add axis
         svgReactions.append("g")
             .attr("class", "x axis")
@@ -307,26 +305,32 @@
 
 
         //TODO: Remove test code
-        var likes = Math.random();
-        var angry = Math.random() * (1 - likes);
-        var sad = 1 - likes - angry;
+        var angry = values["ANGRY"];
+        var love =  values["LOVE"];
+        var haha =  values["HAHA"];
+        var wow =  values["WOW"];
+        var sad =  values["SAD"];
 
-        values = [{label: "Like", frequ: likes}, {label: "Angry", frequ: angry}, {label: "Sad", frequ: sad}]
-        console.log(values);
+        values = [{label: "Sad", frequ: sad},
+            {label: "Angry", frequ: angry},
+            {label: "Haha", frequ: haha},
+            {label: "Wow", frequ: wow},
+            {label: "Love", frequ: love}];
+        var max = -1;
+        for(var i in values){
+            if(values[i] > max)
+                max = values[i];
+        }
         var bar = svgReactions.selectAll(".reactionsBar"); //TODO: Implement the update method.
         bar.data(values);
-        console.log("Bar: " + bar);
-        console.log(bar);
         svgReactions.selectAll(".reactionsBar").transition()
             .attr("x", function (d) {
-                console.log("D has value:" + d.label);
                 return x(d.label);
             })
             .attr("y", function (d) {
                 return y(d.frequ);
             })
             .attr("height", function (d) {
-                console.log(d.frequ);
                 return height - y(d.frequ);
             })
             .attr("width", x.rangeBand());
