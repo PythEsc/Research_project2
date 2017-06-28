@@ -29,33 +29,27 @@
             <h2>Emotion Analysis</h2>
         </div>
         <div id="highlight_output">
-            <h2>Highlighting the output</h2>
+            <h2>Highlighting emotions</h2>
+        </div>
+        <div id="highlight_sentiment">
+            <h2>Highlighting sentiments</h2>
         </div>
     </div>
 </div>
 </div>
 
-
-<style>
-.highlight
-{
-background-color:yellow;
-}
-</style>
 <script>
-    function highlight(textarea, text, emotionRatio)
+    function highlight(textarea, text, color, hovertext, output, title)
     {
         var inner_text = textarea;
         var index = inner_text.indexOf(text);
         if ( index >= 0 )
         {
-            var emotionRatioText = JSON.stringify(emotionRatio, null, 2);
-            var newValue = "<abbr title='"+ emotionRatioText +"'><span class='highlight'>" + text + "</span></abbr>";
-            var title = ' <h2>Highlighting the output</h2>';
+            var newValue = "<abbr title='"+ hovertext +"'><span style='background-color:"+color+";'>" + text + "</span></abbr>";
             if(inner_text.indexOf(title) >= 0)
                 title = '';
-            inner_text = title + inner_text.replace(text,newValue);
-            $('div#highlight_output').html(inner_text);
+            inner_text = title + inner_text.replace(new RegExp(text, 'g'),newValue);
+            $('div#' + output).html(inner_text);
             return inner_text;
         }
         return textarea;
@@ -80,12 +74,44 @@ background-color:yellow;
                 console.log("Received response: " + response);
 
                 var emotion_words = [];
-                j = 0;
+                var j = 0;
                 var textarea = $('textarea#input').val();
+                var textarea_sentiment = $('textarea#input').val();
                 for (var i in response.emotionWords) {
-                    emotion_words[j] = response.emotionWords[i][0];
+                    var word = response.emotionWords[i][0];
+                    if ( emotion_words.indexOf(word) >= 0)
+                        continue;
+                    emotion_words[j] = word;
                     var emotionRatio = response.emotionWords[i][3];
-                    textarea = highlight(textarea, emotion_words[j], emotionRatio);
+                    var emotionRatioText = JSON.stringify(emotionRatio, null, 2);
+                    var color = "yellow";
+                    textarea = highlight(textarea, emotion_words[j], color, emotionRatioText, 'highlight_output','<h2>Highlighting emotions</h2>');
+                    j++;
+                }
+
+                var sentiments= [];
+                j = 0;
+                for (var i in response.sentimentSentence) {
+                    var sentence = response.sentimentSentence[i][0];
+                    if (sentiments.indexOf(sentence)>= 0)
+                        continue;
+                    sentiments[j] = sentence;
+                    var sentiment_value = response.sentimentSentence[i][3];
+                    var color = "yellow";
+                    if(sentiment_value > 0.5) {
+                        sentiment_value = 'Positive: ' + sentiment_value;
+                        color = "green";
+                    }
+                    else if(sentiment_value < -0.5){
+                        sentiment_value = 'Negative: ' + sentiment_value;
+                        color = "red";
+                    }
+                    else{
+                        sentiment_value = 'Neutral: ' + sentiment_value;
+                        color = "yellow";
+                    }
+                    textarea_sentiment = highlight(textarea_sentiment, sentiments[j], color, sentiment_value,
+                        'highlight_sentiment', '<h2>Highlighting sentiments</h2>');
                     j++;
                 }
                 //Update the emotions
