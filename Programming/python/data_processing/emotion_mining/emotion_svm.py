@@ -141,19 +141,18 @@ class CategoryClassifier:
     def calculate_emotion_for_post(self):
         count_non_annotated = 0
         emotions_statistics = [0] * len(Emotion.EMOTION_TYPES)
-        #'Amazon', 'bestbuy'
-        filter = {Post.COLL_COMMENT_EMOTION: {'$exists': False}}
+        filter = {Post.COLL_COMMENT_EMOTION: {'$exists': False},
+                  Post.COLL_LINK: {"$regex": "https://www.facebook.com/tesco/.+"}}
         for post in self.db.iterate_single_post(filter):
             try:
                 filter_comment = {Comment.COLL_PARENT_ID: post.post_id}
-                emotions_post = [0] * len(Emotion.EMOTION_TYPES)
 
+                emotions_post = [0] * len(Emotion.EMOTION_TYPES)
                 for comment_object in self.db.iterate_single_comment(filter_comment, False):
                     comment = comment_object.content
                     output = self.nlp.annotate(comment, self.properties_pos)
-
                     if not isinstance(output, dict):
-                        continue
+                        return
                     sentences = []
 
                     for sentence in output.get("sentences", []):
@@ -189,35 +188,20 @@ class CategoryClassifier:
 
 if __name__ == '__main__':
     db = MongodbStorage()
+    cat_clf = CategoryClassifier(db)
 
-    cc = CategoryClassifier(db)
-    cc.load_model_from_file("category_classifier.pickle")
-    cna, ems = cc.calculate_emotion_for_post()
-    print(cna)
-    print(ems)
-    # cat_clf = CategoryClassifier(db)
-    #
-    # filename = "category_classifier.pickle"
-    #
-    # if os.path.isfile(filename):
-    #  cat_clf.load_model_from_file(filename)
-    # else:
-    #  cat_clf.train()
-    #  cat_clf.save_model_to_file(filename)
-    #
-    # count_non_annotated, emotions_statistics = cat_clf.calculate_emotion_for_post()
-    # print("Number of predicted non-annotated sentences: ", str(count_non_annotated))
-    # sum_of_emotions = sum(emotions_statistics)
-    # emotions_statistics_normalized = [x/sum_of_emotions for x in emotions_statistics]
-    # print("Emotion distribution of predicted non-annotated sentences: ", str(emotions_statistics))
-    # print("Emotion distribution of predicted non-annotated sentences (normalized): ", str(emotions_statistics_normalized))
-    # #cat_clf.evaluate(0.95, use_pickle=False)
+    filename = "category_classifier.pickle"
 
-    # Sound when finished
-    import platform
+    if os.path.isfile(filename):
+     cat_clf.load_model_from_file(filename)
+    else:
+     cat_clf.train()
+     cat_clf.save_model_to_file(filename)
 
-    if platform.system() == 'Windows':
-        import winsound
-
-        for _ in range(5):
-            winsound.Beep(500, 200)
+    count_non_annotated, emotions_statistics = cat_clf.calculate_emotion_for_post()
+    print("Number of predicted non-annotated sentences: ", str(count_non_annotated))
+    sum_of_emotions = sum(emotions_statistics)
+    emotions_statistics_normalized = [x/sum_of_emotions for x in emotions_statistics]
+    print("Emotion distribution of predicted non-annotated sentences: ", str(emotions_statistics))
+    print("Emotion distribution of predicted non-annotated sentences (normalized): ", str(emotions_statistics_normalized))
+    #cat_clf.evaluate(0.95, use_pickle=False)

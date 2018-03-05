@@ -9,6 +9,7 @@ from data_processing.sentiment_miner import Sentimenter
 from importer.data_retrieval.facebook.facebook_parser import FacebookParser
 from importer.database.data_types import Emotion
 from importer.database.mongodb import MongodbStorage
+from neural_networks.convolutional_neural_network.text_cnn import TextCNN
 from regression.models import Regressor
 
 db = MongodbStorage()
@@ -109,7 +110,7 @@ def __process_single_post(post):
 
     # ---------- Reactions ----------
 
-    reactions_list = regressor.predict([post])[0]
+    reactions_list = TextCNN.predict([post])[0]
     reactions_dict = {}
     for index, reactiontype in enumerate(FacebookParser.CONST_REACTIONS_TYPES[1:-1]):
         reactions_dict[reactiontype] = float(reactions_list[index])

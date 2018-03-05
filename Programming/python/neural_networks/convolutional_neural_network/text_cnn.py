@@ -1,13 +1,21 @@
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import datetime
+import time
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import learn
 
 from importer.database.database_access import DataStorage
 from neural_networks.neural_network import NeuralNetwork
+from tensorflow.contrib import learn
+
+from importer.database.mongodb import MongodbStorage
+from neural_networks import data_helpers
+from neural_networks.data_helpers import get_training_set, clean_text
+from pre_trained_embeddings.word_embeddings import WordEmbeddings
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class TextCNN(NeuralNetwork):
@@ -16,12 +24,26 @@ class TextCNN(NeuralNetwork):
     Uses an embedding layer, followed by a convolutional, max-pooling and softmax layer.
     """
 
-    def __init__(
-            self, sequence_length, num_classes, vocab_size,
-            embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, embedding=None):
+    def __init__(self, embedding=None, flags=None):
         # Placeholders for input, output and dropout
-        self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
-        self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
+        self.FLAGS = flags
+        self.vocab_processor = None
+
+        self.filter_sizes = list(map(int, self.FLAGS.filter_sizes.split(",")))
+        self.embedding_size = self.FLAGS.embedding_dim
+        self.num_filters = self.FLAGS.num_filters
+        self.l2_reg_lambda = self.FLAGS.l2_reg_lambda
+        # Read in the data
+        self.x_train, self.x_dev, self.y_train, self.y_dev = self.read_data()
+        # Get the dimensions for the network by reading the data
+        self.sequence_length = self.x_train.shape[1]
+        self.num_classes = self.y_train.shape[1]
+        self.vocab_size = len(self.vocab_processor.vocabulary_)
+
+        # Initialize the network
+        # Start with creating placeholder variables
+        self.input_x = tf.placeholder(tf.int32, [None, self.sequence_length], name="input_x")
+        self.input_y = tf.placeholder(tf.float32, [None, self.num_classes], name="input_y")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
         # Keeping track of l2 regularization loss (optional)
@@ -31,7 +53,7 @@ class TextCNN(NeuralNetwork):
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
             if embedding is None:
                 self.embedding_vector = tf.Variable(
-                    tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+                    tf.random_uniform([self.vocab_size, self.embedding_size], -1.0, 1.0),
                     name='embedding_vector')
                 self.embedding_layer = tf.nn.embedding_lookup(self.embedding_vector, self.input_x)
             else:
@@ -42,12 +64,12 @@ class TextCNN(NeuralNetwork):
 
         # Create a convolution + maxpool layer for each filter size
         pooled_outputs = []
-        for i, filter_size in enumerate(filter_sizes):
+        for i, filter_size in enumerate(self.filter_sizes):
             with tf.name_scope("conv-maxpool-%s" % filter_size):
                 # Convolution Layer
-                filter_shape = [filter_size, embedding_size, 1, num_filters]
+                filter_shape = [filter_size, self.embedding_size, 1, self.num_filters]
                 W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W")
-                b = tf.Variable(tf.constant(0.1, shape=[num_filters]), name="b")
+                b = tf.Variable(tf.constant(0.1, shape=[self.num_filters]), name="b")
                 conv = tf.nn.conv2d(
                     self.embedded_chars_expanded,
                     W,
@@ -59,14 +81,14 @@ class TextCNN(NeuralNetwork):
                 # Maxpooling over the outputs
                 pooled = tf.nn.max_pool(
                     h,
-                    ksize=[1, sequence_length - filter_size + 1, 1, 1],
+                    ksize=[1, self.sequence_length - filter_size + 1, 1, 1],
                     strides=[1, 1, 1, 1],
                     padding='VALID',
                     name="pool")
                 pooled_outputs.append(pooled)
 
         # Combine all the pooled features
-        num_filters_total = num_filters * len(filter_sizes)
+        num_filters_total = self.num_filters * len(self.filter_sizes)
         self.h_pool = tf.concat(pooled_outputs, 3)
         self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
 
@@ -78,9 +100,9 @@ class TextCNN(NeuralNetwork):
         with tf.name_scope("output"):
             W = tf.get_variable(
                 "W",
-                shape=[num_filters_total, num_classes],
+                shape=[num_filters_total, self.num_classes],
                 initializer=tf.contrib.layers.xavier_initializer())
-            b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
+            b = tf.Variable(tf.constant(0.1, shape=[self.num_classes]), name="b")
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
             Wb = tf.matmul(self.h_drop, W) + b
@@ -89,35 +111,222 @@ class TextCNN(NeuralNetwork):
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
             losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
-            self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
+            self.loss = tf.reduce_mean(losses) + self.l2_reg_lambda * l2_loss
 
         # Accuracy
         with tf.name_scope("accuracy"):
             self.accuracy = tf.losses.mean_squared_error(self.input_y, self.scores)
 
-    @staticmethod
-    def train(db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
-        # TODO: Add some code to save/restore the model. At the moment we always have to start from the beginning when
-        # training is stopped
-        pass
+        # Optimizer
+        self.global_step = tf.Variable(0, name="global_step", trainable=False)
+        optimizer = tf.train.AdamOptimizer(0.0005)
+        self.grads_and_vars = optimizer.compute_gradients(self.loss)
+        self.train_op = optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
+
+    def read_data(self):
+        # Data Preparation
+        # ==================================================
+
+        # Load data
+        print("Loading data...")
+
+        db = MongodbStorage()
+        x_text, y = get_training_set(db)
+        x_text = clean_text(x_text)
+
+        # Load pre-trained word embedding
+        print('\nLoading pre-trained word embedding...')
+        embedding_dim = 50
+        we = WordEmbeddings(embedding_dim)
+
+        # Create feature matrix using vocab from trained WordEmbeddings
+        print('\nCreating feature matrix...')
+        document_legths = [len(x.split(" ")) for x in x_text]
+        max_document_length = max(document_legths)
+        min_document_length = min(document_legths)
+        mean_document_length = int(sum(document_legths) / len(document_legths))
+        print('Max document length is {}.'.format(max_document_length))
+        print('Mean document length is {}.'.format(mean_document_length))
+        print('Min document length is {}.'.format(min_document_length))
+        self.vocab_processor = learn.preprocessing.VocabularyProcessor(mean_document_length,
+                                                                       vocabulary=we.categorical_vocab)
+        x = np.array(list(self.vocab_processor.transform(x_text)))
+        y = np.copy(y)
+        words_not_in_we = len(self.vocab_processor.vocabulary_) - len(we.vocab)
+        if words_not_in_we > 0:
+            print("Words not in pre-trained vocab: {:d}".format(words_not_in_we))
+
+        # Randomly shuffle data
+        np.random.seed(10)
+        shuffle_indices = np.random.permutation(np.arange(len(y)))
+        x_shuffled = x[shuffle_indices]
+        y_shuffled = np.copy(y)
+        for i in range(len(shuffle_indices)):
+            value = y[shuffle_indices[i]]
+            y_shuffled[i] = value
+
+        # Split train/test set
+        # TODO: This is very crude, should use cross-validation
+        dev_sample_index = -1 * int(self.FLAGS.dev_sample_percentage * float(len(y)))
+        x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
+        y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
+        print("Vocabulary Size: {:d}".format(len(self.vocab_processor.vocabulary_)))
+        print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+        return x_train, x_dev, y_train, y_dev
+
+    def train(self, db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
+        # Training
+        # ==================================================
+        experiment_file = './experiments/pre_trained.csv'
+        with open(experiment_file, 'w+', encoding='utf-8') as file:
+            file.write('val_mse,train_mse')
+
+        with tf.Graph().as_default():
+            session_conf = tf.ConfigProto(
+                allow_soft_placement=self.FLAGS.allow_soft_placement,
+                log_device_placement=self.FLAGS.log_device_placement)
+            self.sess = tf.Session(config=session_conf)
+            with self.sess.as_default():
+                # Define Training procedure
+                # Keep track of gradient values and sparsity (optional)
+                grad_summaries = []
+                for g, v in self.grads_and_vars:
+                    if g is not None:
+                        grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
+                        sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+                        grad_summaries.append(grad_hist_summary)
+                        grad_summaries.append(sparsity_summary)
+                grad_summaries_merged = tf.summary.merge(grad_summaries)
+
+                # Output directory for models and summaries
+                timestamp = str(int(time.time()))
+                out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+                print("Writing to {}\n".format(out_dir))
+
+                # Summaries for loss and accuracy
+                loss_summary = tf.summary.scalar("loss", self.loss)
+                acc_summary = tf.summary.scalar("accuracy", self.accuracy)
+
+                # Train Summaries
+                train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+                train_summary_dir = os.path.join(out_dir, "summaries", "train")
+                train_summary_writer = tf.summary.FileWriter(train_summary_dir, self.sess.graph)
+
+                # Dev summaries
+                dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
+                dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
+                dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, self.sess.graph)
+
+                # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+                checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+                checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+                if not os.path.exists(checkpoint_dir):
+                    os.makedirs(checkpoint_dir)
+                saver = tf.train.Saver(tf.global_variables(), max_to_keep=self.FLAGS.num_checkpoints)
+
+                # Write vocabulary
+                self.vocab_processor.save(os.path.join(out_dir, "vocab"))
+
+                # Initialize all variables
+                self.sess.run(tf.global_variables_initializer())
+
+                # Generate batches
+                batches = data_helpers.batch_iter(
+                    list(zip(self.x_train, self.y_train)), self.FLAGS.batch_size, self.FLAGS.num_epochs)
+                # Training loop. For each batch...
+                errors = []
+                for batch in batches:
+                    # ---------------------------------------
+                    # -------------TRAIN STEP ---------------
+                    # ---------------------------------------
+                    # Get Batch
+                    x_batch, y_batch = zip(*batch)
+                    # Create feed dict for training step
+                    feed_dict = self.get_feed_dict_train(x_batch, y_batch)
+                    # Do one forward pass and optimize in one session
+                    _, step, summaries, loss, accuracy = self.sess.run(
+                        [self.train_op, self.global_step, train_summary_op, self.loss, self.accuracy],
+                        feed_dict)
+                    # Log the accuracy
+                    errors.append(accuracy)
+                    # Write Tensorboard summary
+                    train_summary_writer.add_summary(summaries, step)
+                    # Update the global step
+                    current_step = tf.train.global_step(self.sess, self.global_step)
+
+                    # --------------------------------------------
+                    # -------------EVALUATION STEP ---------------
+                    # --------------------------------------------
+                    if current_step % self.FLAGS.evaluate_every == 0:
+                        print("\nEvaluation:")
+                        # Create feed dict for evaluation step
+                        dev_feed_dict = self.get_feed_dict_dev(self.x_dev, self.y_dev)
+                        # Do one forward pass and optimize in one session
+                        step, summaries, loss, accuracy = self.sess.run(
+                            [self.global_step, dev_summary_op, self.loss, self.accuracy],
+                            dev_feed_dict)
+                        val_error = accuracy
+                        time_str = datetime.datetime.now().isoformat()
+                        print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                        if dev_summary_writer:
+                            dev_summary_writer.add_summary(summaries, step)
+                        print("")
+
+                        with open(experiment_file, 'a', encoding='utf-8') as file:
+                            file.write('\n{},{}'.format(val_error, np.mean(errors)))
+
+                        errors = []
+
+                    # Save network
+                    if current_step % self.FLAGS.checkpoint_every == 0:
+                        path = saver.save(self.sess, checkpoint_prefix, global_step=current_step)
+                        print("Saved model checkpoint to {}\n".format(path))
+
+    def get_feed_dict_train(self, x_batch, y_batch):
+        """
+        A single training step
+        """
+        feed_dict = {
+            self.input_x: x_batch,
+            self.input_y: y_batch,
+            self.dropout_keep_prob: self.FLAGS.dropout_keep_prob
+        }
+
+        return feed_dict
+
+    def get_feed_dict_dev(self, x_batch, y_batch):
+        """
+        Evaluates model on a dev set
+        """
+        feed_dict = {
+            self.input_x: x_batch,
+            self.input_y: y_batch,
+            self.dropout_keep_prob: 1.0
+        }
+
+        return feed_dict
+
+    def predict_emotions(self, samples: list):
+        return self.sess.run([self.scores], {self.input_x: samples,
+                                             self.dropout_keep_prob: self.FLAGS.dropout_keep_prob})
 
     @staticmethod
-    def predict(content: list) -> list:
+    def predict(samples: list, checkpoint_path="runs/1497955024/checkpoints/") -> list:
         """
         This method predicts the Facebook reactions for a single post
 
-        :param content: The content of a single Facebook post but as a list ["..text..."]. This can also be used for the
-                        batch prediction later on. 
+        :param samples: The content of a single Facebook post but as a list ["..text..."]. This can also be used for the
+                        batch prediction later on.
+        :param checkpoint_path: Checkpoint path
         :return: A list of lists containing the ratio of reactions ['LIKE', 'LOVE', 'WOW', 'HAHA', 'SAD', 'ANGRY', 'THANKFUL']
         """
-        # CHECKPOINT NEEDS TO BE LATEST CHECKPOINT YOU TRAINED
         package_directory = os.path.dirname(os.path.abspath(__file__))
-        checkpoint_for_evaluation = os.path.join(package_directory, "runs/1498554852/checkpoints/")
+        checkpoint_for_evaluation = os.path.join(package_directory, checkpoint_path)
 
-        checkpoint_file = tf.train.latest_checkpoint(checkpoint_for_evaluation)
+        checkpoint_path = tf.train.latest_checkpoint(checkpoint_for_evaluation)
         vocab_path = os.path.join(checkpoint_for_evaluation, "..", "vocab")
         vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
-        content = np.array(list(vocab_processor.transform(content)))
+        samples = np.array(list(vocab_processor.transform(samples)))
         graph = tf.Graph()
         with graph.as_default():
             session_conf = tf.ConfigProto(
@@ -126,8 +335,8 @@ class TextCNN(NeuralNetwork):
             sess = tf.Session(config=session_conf)
             with sess.as_default():
                 # Load the saved meta graph and restore variables
-                saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
-                saver.restore(sess, checkpoint_file)
+                saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_path))
+                saver.restore(sess, checkpoint_path)
 
                 # Get the placeholders from the graph by name
                 input_x = graph.get_operation_by_name("input_x").outputs[0]
@@ -138,25 +347,5 @@ class TextCNN(NeuralNetwork):
                 predictions = graph.get_operation_by_name("output/scores").outputs[0]
 
                 # Collect the predictions here
-                result = sess.run(predictions, {input_x: content, dropout_keep_prob: 1})
+                result = sess.run(predictions, {input_x: samples, dropout_keep_prob: 1})
                 return result
-
-if __name__ == '__main__':
-
-    from importer.database.mongodb import MongodbStorage
-    db = MongodbStorage()
-
-    # TextRNN.train(db, required_mse=0.1, restore=False)
-    # TextRNN.train(db, required_mse=0.1, restore=True)
-
-
-    content = [
-        'This is me.',
-        'I hate your supermarket!',
-        'Your employees are so rude!',
-    ]
-
-    predicted_reactions = TextCNN.predict(content)
-
-    for i, r in enumerate(content):
-        print('{}:\n{}'.format(r, predicted_reactions[i]))

@@ -51,13 +51,13 @@ polyline{
     float:left;
 }
 #highlight_output{
-    width: 500px;
+    width: 300px;
     height: 400px;
     float:left;
 }
 
 #highlight_sentiment{
-    width: 500px;
+    width: 300px;
     height: 400px;
     float:left;
 }
