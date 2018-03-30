@@ -32,6 +32,7 @@ FLAGS._parse_flags()
 
 
 def train_and_evaluate_cnn():
+    # Start mongo with "sudo service mongod start"
     cnn = TextCNN_Keras(flags=FLAGS)
     cnn.train()
     # Predict a little sample
