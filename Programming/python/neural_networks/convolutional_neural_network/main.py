@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from neural_networks.convolutional_neural_network.keras_TextCNN import TextCNN_Keras
-from python.neural_networks.convolutional_neural_network.text_cnn import TextCNN
+from neural_networks.convolutional_neural_network.text_cnn import TextCNN
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos",
