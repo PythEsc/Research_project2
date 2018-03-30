@@ -1,4 +1,6 @@
 import tensorflow as tf
+
+from neural_networks.convolutional_neural_network.keras_TextCNN import TextCNN_Keras
 from python.neural_networks.convolutional_neural_network.text_cnn import TextCNN
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
@@ -30,7 +32,7 @@ FLAGS._parse_flags()
 
 
 def train_and_evaluate_cnn():
-    cnn = TextCNN(flags=FLAGS)
+    cnn = TextCNN_Keras(flags=FLAGS)
     cnn.train()
     # Predict a little sample
     content = [

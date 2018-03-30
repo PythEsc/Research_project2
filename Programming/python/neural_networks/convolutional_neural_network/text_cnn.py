@@ -123,58 +123,10 @@ class TextCNN(NeuralNetwork):
         self.grads_and_vars = optimizer.compute_gradients(self.loss)
         self.train_op = optimizer.apply_gradients(self.grads_and_vars, global_step=self.global_step)
 
-    def read_data(self):
-        # Data Preparation
-        # ==================================================
+        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=self.FLAGS.num_checkpoints)
 
-        # Load data
-        print("Loading data...")
 
-        db = MongodbStorage()
-        x_text, y = get_training_set(db)
-        x_text = clean_text(x_text)
-
-        # Load pre-trained word embedding
-        print('\nLoading pre-trained word embedding...')
-        embedding_dim = 50
-        we = WordEmbeddings(embedding_dim)
-
-        # Create feature matrix using vocab from trained WordEmbeddings
-        print('\nCreating feature matrix...')
-        document_legths = [len(x.split(" ")) for x in x_text]
-        max_document_length = max(document_legths)
-        min_document_length = min(document_legths)
-        mean_document_length = int(sum(document_legths) / len(document_legths))
-        print('Max document length is {}.'.format(max_document_length))
-        print('Mean document length is {}.'.format(mean_document_length))
-        print('Min document length is {}.'.format(min_document_length))
-        self.vocab_processor = learn.preprocessing.VocabularyProcessor(mean_document_length,
-                                                                       vocabulary=we.categorical_vocab)
-        x = np.array(list(self.vocab_processor.transform(x_text)))
-        y = np.copy(y)
-        words_not_in_we = len(self.vocab_processor.vocabulary_) - len(we.vocab)
-        if words_not_in_we > 0:
-            print("Words not in pre-trained vocab: {:d}".format(words_not_in_we))
-
-        # Randomly shuffle data
-        np.random.seed(10)
-        shuffle_indices = np.random.permutation(np.arange(len(y)))
-        x_shuffled = x[shuffle_indices]
-        y_shuffled = np.copy(y)
-        for i in range(len(shuffle_indices)):
-            value = y[shuffle_indices[i]]
-            y_shuffled[i] = value
-
-        # Split train/test set
-        # TODO: This is very crude, should use cross-validation
-        dev_sample_index = -1 * int(self.FLAGS.dev_sample_percentage * float(len(y)))
-        x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
-        y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
-        print("Vocabulary Size: {:d}".format(len(self.vocab_processor.vocabulary_)))
-        print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
-        return x_train, x_dev, y_train, y_dev
-
-    def train(self, db: DataStorage, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
+    def train(self, sample_percentage: float = 0.2, required_mse: float = 0.3, restore=False):
         # Training
         # ==================================================
         experiment_file = './experiments/pre_trained.csv'
@@ -217,22 +169,19 @@ class TextCNN(NeuralNetwork):
                 dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
                 dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, self.sess.graph)
 
+
+                # Initialize all variables
+                self.sess.run(tf.global_variables_initializer())
+
                 # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
                 checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
                 checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                 if not os.path.exists(checkpoint_dir):
                     os.makedirs(checkpoint_dir)
-                saver = tf.train.Saver(tf.global_variables(), max_to_keep=self.FLAGS.num_checkpoints)
 
                 # Write vocabulary
                 self.vocab_processor.save(os.path.join(out_dir, "vocab"))
 
-                # Initialize all variables
-                self.sess.run(tf.global_variables_initializer())
-
-                # Generate batches
-                batches = data_helpers.batch_iter(
-                    list(zip(self.x_train, self.y_train)), self.FLAGS.batch_size, self.FLAGS.num_epochs)
                 # Training loop. For each batch...
                 errors = []
                 for batch in batches:
@@ -279,7 +228,7 @@ class TextCNN(NeuralNetwork):
 
                     # Save network
                     if current_step % self.FLAGS.checkpoint_every == 0:
-                        path = saver.save(self.sess, checkpoint_prefix, global_step=current_step)
+                        path = self.saver.save(self.sess, checkpoint_prefix, global_step=current_step)
                         print("Saved model checkpoint to {}\n".format(path))
 
     def get_feed_dict_train(self, x_batch, y_batch):
