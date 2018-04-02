@@ -2,6 +2,7 @@ import tensorflow as tf
 
 from neural_networks.convolutional_neural_network.keras_TextCNN import TextCNN_Keras
 from neural_networks.convolutional_neural_network.keras_TextRNN import TextRNN_Keras
+from neural_networks.convolutional_neural_network.keras_TextRNNCNN import TextRNNCNN_Keras
 from neural_networks.convolutional_neural_network.text_cnn import TextCNN
 
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
@@ -35,7 +36,7 @@ FLAGS._parse_flags()
 
 def train_and_evaluate_cnn():
     # Start mongo with "sudo service mongod start"
-    cnn = TextRNN_Keras(flags=FLAGS)
+    cnn = TextRNNCNN_Keras(flags=FLAGS)
     cnn.train()
     # Predict a little sample
     content = [
