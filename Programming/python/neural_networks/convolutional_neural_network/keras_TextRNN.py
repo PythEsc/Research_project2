@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding, LSTM
 from keras.layers import Activation
 from keras.layers.convolutional import Conv2D
 from keras.models import Sequential, Model
@@ -17,7 +17,7 @@ from pre_trained_embeddings.word_embeddings import WordEmbeddings
 import tensorflow as tf
 
 
-class TextCNN_Keras():
+class TextRNN_Keras():
     def __init__(self, flags):
         self.FLAGS = flags
         self.vocab_processor = None
@@ -27,6 +27,7 @@ class TextCNN_Keras():
         self.num_filters = self.FLAGS.num_filters
         self.l2_reg_lambda = self.FLAGS.l2_reg_lambda
         self.drop_out_rate = self.FLAGS.dropout_keep_prob
+        self.lstm_layers = 2
         # Read in the data
         self.x_train, self.x_dev, self.y_train, self.y_dev = self.read_data()
         # Get the dimensions for the network by reading the data
@@ -53,18 +54,12 @@ class TextCNN_Keras():
         model = Sequential()
         model.add(
             Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size, input_shape=(self.sequence_length,)))
-        model.add(Reshape((self.sequence_length, self.embedding_size, 1)))
-        model.add(Conv2D(40, 4))
-        model.add(Activation(activation="relu"))
-        # model.add(MaxPooling2D())
-        model.add(Conv2D(64, 3))
-        model.add(Activation(activation="relu"))
-        # model.add(MaxPooling2D())
-        model.add(Conv2D(128, 3))
-        model.add(Activation(activation="relu"))
-        model.add(MaxPooling2D())
-        model.add(Flatten())
-        # model.add(Dropout(self.drop_out_rate))
+        for i in range(self.lstm_layers):
+            return_sequences = i < (self.lstm_layers - 1)
+            model.add(LSTM(self.embedding_size, return_sequences=return_sequences))
+
+        # model.add(Flatten())
+        model.add(Dropout(self.drop_out_rate))
         model.add(Dense(self.num_classes, activation="softmax"))
 
         model.summary()
@@ -151,8 +146,8 @@ class TextCNN_Keras():
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                self.cnn.save("keras_model/three_layer_nomaxpooljustattheend_latest_model.h5", include_optimizer=False)
-                self.cnn.save_weights("keras_model/three_layer_nomaxpooljustattheend_latest_model_weights.h5", True)
+                self.cnn.save("keras_model/three_layer_nomaxpool_latest_model.h5", include_optimizer=False)
+                self.cnn.save_weights("keras_model/three_layer_nomaxpool_latest_model_weights.h5", True)
                 self.validate(counter, batches_dev)
             counter += 1
 
