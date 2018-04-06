@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding, BatchNormalization
 from keras.layers import Activation
 from keras.layers.convolutional import Conv2D
 from keras.models import Sequential, Model
@@ -34,6 +34,10 @@ class TextCNN_Keras():
         self.num_classes = self.y_train.shape[1]
         self.vocab_size = len(self.vocab_processor.vocabulary_)
 
+        self.convolution_layers = self.FLAGS.convolution_layers
+        self.use_bn = self.FLAGS.use_bn
+        self.use_max_pooling = self.FLAGS.use_max_pooling
+
         # Initialize the network
         # Start with creating placeholder variables
         self.input_x = Input((self.sequence_length,), name="input_x")
@@ -54,15 +58,13 @@ class TextCNN_Keras():
         model.add(
             Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size, input_shape=(self.sequence_length,)))
         model.add(Reshape((self.sequence_length, self.embedding_size, 1)))
-        model.add(Conv2D(40, 4))
-        model.add(Activation(activation="relu"))
-        # model.add(MaxPooling2D())
-        model.add(Conv2D(64, 3))
-        model.add(Activation(activation="relu"))
-        # model.add(MaxPooling2D())
-        model.add(Conv2D(128, 3))
-        model.add(Activation(activation="relu"))
-        model.add(MaxPooling2D())
+        for i in range(self.convolution_layers):
+            model.add(Conv2D(40, 4))
+            model.add(Activation(activation="relu"))
+            if self.use_bn:
+                model.add(BatchNormalization())
+            if self.use_max_pooling:
+                model.add(MaxPooling2D())
         model.add(Flatten())
         # model.add(Dropout(self.drop_out_rate))
         model.add(Dense(self.num_classes, activation="softmax"))

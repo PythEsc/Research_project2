@@ -18,6 +18,9 @@ tf.flags.DEFINE_integer("num_filters", 40, "Number of filters per filter size (d
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 tf.flags.DEFINE_float("lstm_layers", 2, "LSTM Layer (default: 2)")
+tf.flags.DEFINE_float("convolution_layers", 1, "LSTM Layer (default: 2)")
+tf.flags.DEFINE_float("use_bn", False, "Add BN Layer (default: False)")
+tf.flags.DEFINE_float("use_max_pooling", True, "Add MaxPool Layer (default: True)")
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
