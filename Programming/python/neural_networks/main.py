@@ -5,5 +5,14 @@ if __name__ == '__main__':
     config = configuration_loader.load_config(path="../config/neural_nets/parameters.json")
 
     # Start mongo with "sudo service mongod start"
-    cnn = TextRNNCNN_Keras(settings=config)
-    cnn.train()
+    combined = TextRNNCNN_Keras(settings=config)
+    combined.train()
+
+    content = ["I really love your delicious orange juice",
+               "This cookies were so old and dry they are disgusting :(",
+               "The employees in this supermarket are so rude."]
+
+    predicted_reactions = combined.predict(content=content)
+
+    for i, r in enumerate(content):
+        print('{}:\n{}'.format(r, predicted_reactions[i]))
