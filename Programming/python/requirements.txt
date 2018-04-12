@@ -6,3 +6,9 @@ fasttext==0.8.3
 pandas==0.22.0
 pymongo==3.6.1
 nltk==3.2.5
+facepy==1.0.9
+Flask==0.12.2
+Keras==2.1.5
+pycorenlp==0.3.0
+matplotlib==2.2.2
+wikipedia==1.4.0

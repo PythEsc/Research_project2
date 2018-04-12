@@ -35,8 +35,8 @@ class Regressor():
         x_text = clean_text(x_text)
 
         # Randomly Shuffle the data
-        np.random.random.seed(10)
-        shuffle_indices = np.random.random.permutation(range(len(y)))
+        np.random.seed(10)
+        shuffle_indices = np.random.permutation(range(len(y)))
         x_shuffled = [x_text[i] for i in shuffle_indices]
         y_shuffled = [y[i] for i in shuffle_indices]
         emotions_shuffled = [emotions[i] for i in shuffle_indices]

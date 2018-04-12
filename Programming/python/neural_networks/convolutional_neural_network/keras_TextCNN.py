@@ -1,26 +1,24 @@
 from __future__ import print_function, division
 
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding
+import numpy as np
+import sklearn.metrics
 from keras.layers import Activation
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding
 from keras.layers.convolutional import Conv2D
 from keras.models import Sequential, Model
-from keras.optimizers import RMSprop, Adam
-
-import sklearn.metrics
-import numpy as np
+from keras.optimizers import Adam
 from tensorflow.contrib import learn
 
 from importer.database.mongodb import MongodbStorage
 from neural_networks import data_helpers
 from neural_networks.data_helpers import get_training_set, clean_text
 from pre_trained_embeddings.word_embeddings import WordEmbeddings
-import tensorflow as tf
+
 
 class TextCNN_Keras():
     def __init__(self, flags):
         self.FLAGS = flags
         self.vocab_processor = None
-
 
         self.filter_sizes = list(map(int, self.FLAGS.filter_sizes.split(",")))
         self.embedding_size = self.FLAGS.embedding_dim
@@ -165,4 +163,4 @@ class TextCNN_Keras():
             result = self.cnn.predict(x_batch)
             mse = sklearn.metrics.mean_squared_error(result, y_batch)
             acc_mse.append(mse)
-        print("%d Validation[CNN loss: %f]" % (counter, np.mean(np.array(acc_mse))))
+        print("%d Validation[CNN loss: %f]" % (counter, float(np.mean(np.array(acc_mse)))))
