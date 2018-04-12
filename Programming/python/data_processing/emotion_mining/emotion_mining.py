@@ -10,7 +10,8 @@ from importer.database.mongodb import MongodbStorage
 
 class EmotionMiner:
     """
-    Class that iterates over a given DataStorage implementation (e.g. MongodbStorage) and processes all entries that do not have a NER tag
+    Class that iterates over a given DataStorage implementation (e.g. MongodbStorage) and processes all entries that do
+    not have a NER tag
     """
 
     def __init__(self, data_storage: DataStorage):

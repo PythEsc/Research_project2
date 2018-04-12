@@ -36,8 +36,10 @@ def main():
         # if sum_mined_emotions == 0:
         #     continue
 
-        ratio_mined_emotions = [mined_emotion / sum_mined_emotions if sum_mined_emotions != 0 else 0 for mined_emotion in mined_emotions]
-        ratio_real_emotions = [real_emotion / sum_real_emotions if sum_real_emotions != 0 else 0 for real_emotion in real_emotions]
+        ratio_mined_emotions = [mined_emotion / sum_mined_emotions if sum_mined_emotions != 0 else 0 for mined_emotion
+                                in mined_emotions]
+        ratio_real_emotions = [real_emotion / sum_real_emotions if sum_real_emotions != 0 else 0 for real_emotion in
+                               real_emotions]
 
         for index_real, real_emotion in enumerate(ratio_real_emotions):
             for index_mined, mined_emotion in enumerate(ratio_mined_emotions):

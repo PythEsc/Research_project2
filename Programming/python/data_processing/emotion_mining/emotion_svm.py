@@ -138,6 +138,7 @@ class CategoryClassifier:
         This method calculates the emotions for a post AND also uses the SVM to predict the emotions for a 
         non-annotated sentence. 
     """
+
     def calculate_emotion_for_post(self):
         count_non_annotated = 0
         emotions_statistics = [0] * len(Emotion.EMOTION_TYPES)
@@ -163,7 +164,9 @@ class CategoryClassifier:
                         end_index = end['characterOffsetEnd']
                         sentence_splitted = comment[start_index: end_index]
                         sentences.append(sentence_splitted)
-                    # Because I am running already through everything, I can already calculate the overall emotion distribution
+
+                    # Because I am running already through everything,
+                    # I can already calculate the overall emotion distribution
                     for sent_index, sentence in enumerate(output.get("sentences", [])):
                         actual_sentence = sentences[sent_index]
                         lookedup_sentence = db.select_single_sentence({Sentence.COLL_CONTENT: actual_sentence})
@@ -175,7 +178,8 @@ class CategoryClassifier:
                             emotions_statistics = [x + y for x, y in zip(emotions_statistics, sentence_emotion)]
                             emotions_post = [x + y for x, y in zip(emotions_post, sentence_emotion)]
                             count_non_annotated += 1
-                            new_sentence = Sentence.create_from_single_values(actual_sentence, sentence_emotion[0].tolist(), True)
+                            new_sentence = Sentence.create_from_single_values(actual_sentence,
+                                                                              sentence_emotion[0].tolist(), True)
                             db.insert_sentence(new_sentence)
                 if len(emotions_post) == 1:
                     emotions_post = emotions_post[0].tolist()
@@ -186,6 +190,7 @@ class CategoryClassifier:
                 traceback.print_exc()
         return count_non_annotated, emotions_statistics
 
+
 if __name__ == '__main__':
     db = MongodbStorage()
     cat_clf = CategoryClassifier(db)
@@ -193,15 +198,16 @@ if __name__ == '__main__':
     filename = "category_classifier.pickle"
 
     if os.path.isfile(filename):
-     cat_clf.load_model_from_file(filename)
+        cat_clf.load_model_from_file(filename)
     else:
-     cat_clf.train()
-     cat_clf.save_model_to_file(filename)
+        cat_clf.train()
+        cat_clf.save_model_to_file(filename)
 
     count_non_annotated, emotions_statistics = cat_clf.calculate_emotion_for_post()
     print("Number of predicted non-annotated sentences: ", str(count_non_annotated))
     sum_of_emotions = sum(emotions_statistics)
-    emotions_statistics_normalized = [x/sum_of_emotions for x in emotions_statistics]
+    emotions_statistics_normalized = [x / sum_of_emotions for x in emotions_statistics]
     print("Emotion distribution of predicted non-annotated sentences: ", str(emotions_statistics))
-    print("Emotion distribution of predicted non-annotated sentences (normalized): ", str(emotions_statistics_normalized))
-    #cat_clf.evaluate(0.95, use_pickle=False)
+    print("Emotion distribution of predicted non-annotated sentences (normalized): ",
+          str(emotions_statistics_normalized))
+    # cat_clf.evaluate(0.95, use_pickle=False)

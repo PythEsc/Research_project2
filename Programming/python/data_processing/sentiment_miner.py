@@ -1,7 +1,6 @@
 import os
 import traceback
 
-import nltk
 from pycorenlp.corenlp import StanfordCoreNLP
 
 from importer.database.data_types import Post, Comment

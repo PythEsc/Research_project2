@@ -1,5 +1,4 @@
-from importer.database.data_types import Emotion, Sentence, Comment, Post
-from importer.database.database_access import DataStorage
+from importer.database.data_types import Post
 from importer.database.mongodb import MongodbStorage
 
 db = MongodbStorage()

@@ -1,12 +1,13 @@
-import os
 import codecs
+import os
 import re
+
+import fasttext
 import numpy as np
 from tensorflow.contrib import learn
-import fasttext
 
 from importer.database.mongodb import MongodbStorage
-from neural_networks.data_helpers import get_training_set
+from neural_networks.util.data_helpers import get_training_set
 
 
 class WordEmbeddings():
@@ -14,26 +15,22 @@ class WordEmbeddings():
 
         # I only loaded the 50 and 100 dimensions. There are 200 and 300 as well,
         # but since they are too large for our memories, I left them out.
-        if dim not in [50, 100]:
-            raise ValueError("Dimension not supported. Try 50 or 100.")
         self.dim = dim
 
         if dim == 50:
             glovefile = 'glove.6B.50d.txt'
         elif dim == 100:
             glovefile = 'glove.6B.100d.txt'
+        else:
+            raise ValueError("Dimension '{}' not supported. Try 50 or 100.".format(dim))
 
         self.glovepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'glove', glovefile)
+        self.vocab, self.embd = self.load_glove(self.glovepath)
 
-        with codecs.open(self.glovepath, 'a+', encoding='utf-8') as file:
-            pass
-
-        self.vocab, self.embd = self.loadGloVe(self.glovepath)
-
-    def loadGloVe(self, filepath):
+    def load_glove(self, filepath):
         """
         Read GloVe format embedding file.
-        :param filename: The full path to the file.
+        :param filepath: The full path to the file.
         :return: vocab, embd. Vocab is a list of the vocabulary. Embd is a numpy array of the embedding, where
                               each row corresponds to a word in vocab.
         """
@@ -47,7 +44,7 @@ class WordEmbeddings():
                 embd.append(row[1:])
         self.vocab = vocab
         self.embd = np.array(embd).astype(np.float32)
-        self.categorical_vocab = self._createCategoricalVocabulary(self.vocab)
+        self.categorical_vocab = self._create_categorical_vocabulary(self.vocab)
 
         print('Embedding loaded.')
         print('Vocab size: {}'.format(len(self.vocab)))
@@ -60,7 +57,6 @@ class WordEmbeddings():
         """
         
         :param data: The list of posts
-        :param dim: The dimension of the embedding to be created.
         :param min_count: The minimum number of occurrences for a word to be considered.
         :param word_ngrams: The maximum word ngram to be considered.
         :param minn: The minimum character ngram.
@@ -80,17 +76,17 @@ class WordEmbeddings():
 
         # train the model
         print('\nFitting extra data...')
-        model = fasttext.skipgram(input_file=text_file,
-                                  output=output_model,
-                                  dim=self.dim,
-                                  min_count=min_count,
-                                  word_ngrams=word_ngrams,
-                                  minn=minn,
-                                  maxn=maxn,
-                                  lr=learning_rate,
-                                  epoch=n_epochs,
-                                  thread=n_threads,
-                                  silent=False)
+        fasttext.skipgram(input_file=text_file,
+                          output=output_model,
+                          dim=self.dim,
+                          min_count=min_count,
+                          word_ngrams=word_ngrams,
+                          minn=minn,
+                          maxn=maxn,
+                          lr=learning_rate,
+                          epoch=n_epochs,
+                          thread=n_threads,
+                          silent=False)
         print('Finished fitting.\n')
 
         self._save_output(self.glovepath, ''.join([output_model, '.vec']))
@@ -99,7 +95,7 @@ class WordEmbeddings():
         os.remove(''.join([output_model, '.vec']))
         os.remove(''.join([output_model, '.bin']))
 
-        self.vocab, self.embd = self.loadGloVe(self.glovepath)
+        self.vocab, self.embd = self.load_glove(self.glovepath)
 
     def _clean_text(self, text):
         clean_text = []
@@ -122,7 +118,8 @@ class WordEmbeddings():
                 print("\r%.2f%%" % (i / len(words_to_save) * 100), end='')
                 file.write('{} {}\n'.format(word, ' '.join(fasttext_embedding[word])))
 
-    def _load_fasttext(self, filepath):
+    @staticmethod
+    def _load_fasttext(filepath):
         fasttext_embedding = {}
         with open(filepath, 'r', encoding='utf-8') as file:
             for i, line in enumerate(file.readlines()):
@@ -134,12 +131,14 @@ class WordEmbeddings():
 
         return fasttext_embedding
 
-    def _save_input(self, X, fpath):
+    @staticmethod
+    def _save_input(X, fpath):
         with codecs.open(fpath, 'w', 'utf-8') as file:
             for x in X:
                 file.write('{}\n'.format(re.sub('\n|\r\n|\r', ' ', x)))
 
-    def _createCategoricalVocabulary(self, words):
+    @staticmethod
+    def _create_categorical_vocabulary(words):
         vocab = learn.preprocessing.CategoricalVocabulary()
         for w in words:
             vocab.add(w)

@@ -1,4 +1,3 @@
-import nltk
 from pycorenlp.corenlp import StanfordCoreNLP
 
 from importer.database.data_types import Emotion, Sentence
@@ -97,7 +96,8 @@ class NegationHandler:
 
             total_emotion = [x + y for x, y in zip(sentence_emotion, total_emotion)]
             if add_to_database:
-                self.db.insert_sentence(Sentence.create_from_single_values(sentences[sent_index], sentence_emotion, False))
+                self.db.insert_sentence(
+                    Sentence.create_from_single_values(sentences[sent_index], sentence_emotion, False))
 
         return total_emotion
 

@@ -8,9 +8,9 @@ from sklearn.linear_model import LinearRegression
 from data_processing.emotion_mining.negation_handling import NegationHandler
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
-from neural_networks.convolutional_neural_network.text_cnn import TextCNN
-from neural_networks.data_helpers import clean_text, get_training_set_with_emotions
-from neural_networks.recurrent_neural_network.text_rnn import TextRNN
+from neural_networks.nn_implementations.keras_TextCNN import TextCNN_Keras
+from neural_networks.nn_implementations.keras_TextRNN import TextRNN_Keras
+from neural_networks.util.data_helpers import clean_text, get_training_set_with_emotions
 
 
 class Regressor():
@@ -50,11 +50,11 @@ class Regressor():
 
         # NN prediction
         print('NN prediction')
-        rnn_out = TextRNN.predict(x_train)
-        rnn_out_dev = TextRNN.predict(x_dev)
+        rnn_out = TextRNN_Keras.predict(x_train)
+        rnn_out_dev = TextRNN_Keras.predict(x_dev)
 
-        cnn_out = TextCNN.predict(x_train)
-        cnn_out_dev = TextCNN.predict(x_dev)
+        cnn_out = TextCNN_Keras.predict(x_train)
+        cnn_out_dev = TextCNN_Keras.predict(x_dev)
 
         out = []
         for i in range(len(x_train)):
@@ -72,11 +72,11 @@ class Regressor():
         print('regression')
         self.regressor.fit(X=output, y=y_train)
 
-        y_pred_n = self.regressor.predict(X=output_dev)
+        y_pred_n = self.regressor.predict(output_dev)
 
         y_pred = []
         for i in range(len(y_pred_n)):
-            y_pred.append([p if p > 0 else 0 for p in y_pred_n[i]])
+            y_pred.append([(p + 1) / 2 for p in y_pred_n[i]])
 
         mse = metrics.mean_squared_error(y_dev, y_pred)
         print('MSE: {}'.format(mse))
@@ -86,7 +86,7 @@ class Regressor():
     def predict(self, content: list) -> list:
         self.regressor = pickle.load(open(self.model_path, 'rb'))
 
-        rnn_out = TextRNN.predict(content)
+        rnn_out = TextRNN_Keras.predict(content)
 
         # cnn_out = TextCNN.predict(content)
 
@@ -106,7 +106,7 @@ class Regressor():
         y_pred_n = self.regressor.predict(output)
         y_pred = []
         for i in range(len(y_pred_n)):
-            y_pred.append([p if p > 0 else 0 for p in y_pred_n[i]])
+            y_pred.append([(p + 1) / 2 for p in y_pred_n[i]])
         return y_pred
 
 

@@ -21,9 +21,7 @@ import gensim
 import nltk
 import numpy as np
 from nltk.corpus import stopwords
-from scipy import spatial
 from sklearn.decomposition import PCA
-
 # an embedding word with associated vector
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -123,5 +121,5 @@ sentence2 = Sentence(word_embeddings2)
 
 # calculate and display the result
 sentence_vectors = sentence_to_vec([sentence1, sentence2], embedding_size)
-print("Sentence2Vec: "+str(cosine_similarity(sentence_vectors[0], sentence_vectors[1])))
-print("AvgVec: "+str(cosine_similarity(avg1, avg2)))
+print("Sentence2Vec: " + str(cosine_similarity(sentence_vectors[0], sentence_vectors[1])))
+print("AvgVec: " + str(cosine_similarity(avg1, avg2)))
