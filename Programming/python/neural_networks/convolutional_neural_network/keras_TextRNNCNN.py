@@ -1,42 +1,39 @@
 from __future__ import print_function, division
 
-import numpy as np
-import sklearn.metrics
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding, LSTM, Average
 from keras.layers import Activation
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding, BatchNormalization
 from keras.layers.convolutional import Conv2D
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras.optimizers import RMSprop, Adam
+
+import sklearn.metrics
+import numpy as np
 from tensorflow.contrib import learn
 
 from importer.database.mongodb import MongodbStorage
 from neural_networks import data_helpers
 from neural_networks.data_helpers import get_training_set, clean_text
 from pre_trained_embeddings.word_embeddings import WordEmbeddings
+import tensorflow as tf
 
 
-
-class TextCNN_Keras():
+class TextRNNCNN_Keras():
     def __init__(self, flags):
         self.FLAGS = flags
         self.vocab_processor = None
-
 
         self.filter_sizes = list(map(int, self.FLAGS.filter_sizes.split(",")))
         self.embedding_size = self.FLAGS.embedding_dim
         self.num_filters = self.FLAGS.num_filters
         self.l2_reg_lambda = self.FLAGS.l2_reg_lambda
         self.drop_out_rate = self.FLAGS.dropout_keep_prob
+        self.lstm_layers = self.FLAGS.lstm_layers
         # Read in the data
         self.x_train, self.x_dev, self.y_train, self.y_dev = self.read_data()
         # Get the dimensions for the network by reading the data
         self.sequence_length = self.x_train.shape[1]
         self.num_classes = self.y_train.shape[1]
         self.vocab_size = len(self.vocab_processor.vocabulary_)
-
-        self.convolution_layers = self.FLAGS.convolution_layers
-        self.use_bn = self.FLAGS.use_bn
-        self.use_max_pooling = self.FLAGS.use_max_pooling
 
         # Initialize the network
         # Start with creating placeholder variables
@@ -46,25 +43,52 @@ class TextCNN_Keras():
         optimizer = Adam(lr=0.0005, beta_1=0.5)
 
         # Build and compile the generator
-        self.cnn = self.build_cnn()
-        self.cnn.compile(loss="mse", metrics=['accuracy'], optimizer=optimizer)
+        self.rnn, self.rnn_output = self.build_rnn()
+        # self.rnn.compile(loss="mse", metrics=['accuracy'], optimizer=optimizer)
 
-    def load_checkpoint(self):
-        from keras.models import load_model
-        self.cnn = load_model("../../checkpoints/checkpoint_gp_wgan/model/gp_wgan/latest_model.h5")
+        self.cnn, self.cnn_output = self.build_cnn()
+        # self.cnn.compile(loss="mse", metrics=['accuracy'], optimizer=optimizer)
+
+        self.combined_output = Average()([self.rnn_output, self.cnn_output])
+        self.combined = Model(inputs=[self.input_x], outputs=[self.combined_output])
+        self.combined.compile(loss="mse", metrics=['accuracy'], optimizer=optimizer)
+
+    # def load_checkpoint(self):
+    #     from keras.models import load_model
+    #     self.combined = load_model("latest_model.h5")
+
+    def build_rnn(self):
+        model = Sequential()
+        model.add(
+            Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size, input_shape=(self.sequence_length,)))
+        for i in range(self.lstm_layers):
+            return_sequences = i < (self.lstm_layers - 1)
+            model.add(LSTM(self.embedding_size, return_sequences=return_sequences))
+
+        # model.add(Flatten())
+        model.add(Dropout(self.drop_out_rate))
+        model.add(Dense(self.num_classes, activation="softmax"))
+
+        model.summary()
+
+        result = model(self.input_x)
+
+        return Model(self.input_x, result), result
 
     def build_cnn(self):
         model = Sequential()
         model.add(
             Embedding(input_dim=self.vocab_size, output_dim=self.embedding_size, input_shape=(self.sequence_length,)))
         model.add(Reshape((self.sequence_length, self.embedding_size, 1)))
-        for i in range(self.convolution_layers):
-            model.add(Conv2D(40, 4))
-            model.add(Activation(activation="relu"))
-            if self.use_bn:
-                model.add(BatchNormalization())
-            if self.use_max_pooling:
-                model.add(MaxPooling2D())
+        model.add(Conv2D(40, 4))
+        model.add(Activation(activation="relu"))
+        # model.add(MaxPooling2D())
+        model.add(Conv2D(64, 3))
+        model.add(Activation(activation="relu"))
+        # model.add(MaxPooling2D())
+        model.add(Conv2D(128, 3))
+        model.add(Activation(activation="relu"))
+        model.add(MaxPooling2D())
         model.add(Flatten())
         # model.add(Dropout(self.drop_out_rate))
         model.add(Dense(self.num_classes, activation="softmax"))
@@ -73,7 +97,7 @@ class TextCNN_Keras():
 
         result = model(self.input_x)
 
-        return Model(self.input_x, result)
+        return Model(self.input_x, result), result
 
     def read_data(self):
         # Data Preparation
@@ -145,7 +169,7 @@ class TextCNN_Keras():
             y_batch = np.array(y_batch)
 
             # Train the generator
-            cnn_loss = self.cnn.train_on_batch(x_batch, y_batch)
+            cnn_loss = self.combined.train_on_batch(x_batch, y_batch)
 
             # Plot the progress
             if counter % 20 == 0:
@@ -153,8 +177,8 @@ class TextCNN_Keras():
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                self.cnn.save("keras_model/three_layer_nomaxpooljustattheend_latest_model.h5", include_optimizer=False)
-                self.cnn.save_weights("keras_model/three_layer_nomaxpooljustattheend_latest_model_weights.h5", True)
+                self.cnn.save("keras_model/rnncnn_latest_model.h5", include_optimizer=False)
+                self.cnn.save_weights("keras_model/rnncnn_latest_model_weights.h5", True)
                 self.validate(counter, batches_dev)
             counter += 1
 
@@ -169,4 +193,4 @@ class TextCNN_Keras():
             result = self.cnn.predict(x_batch)
             mse = sklearn.metrics.mean_squared_error(result, y_batch)
             acc_mse.append(mse)
-        print("%d Validation[CNN loss: %f]" % (counter, float(np.mean(np.array(acc_mse)))))
+        print("%d Validation[CNN loss: %f]" % (counter, np.mean(np.array(acc_mse))))
