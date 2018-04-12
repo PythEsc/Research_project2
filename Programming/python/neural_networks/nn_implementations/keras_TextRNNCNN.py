@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+import os
 import sklearn.metrics
 from keras.layers import Activation
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding, LSTM, Average
@@ -167,12 +168,15 @@ class TextRNNCNN_Keras():
 
             # Plot the progress
             if counter % 20 == 0:
-                print("%d Training[Combined loss: %f, Combined accuracy: %f]" % (counter, combined_loss[0], combined_loss[1]))
+                print("%d Training[Combined loss: %f, Combined accuracy: %f]" % (
+                counter, combined_loss[0], combined_loss[1]))
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                self.combined.save("keras_model/rnncnn_latest_model.h5", include_optimizer=False)
-                self.combined.save_weights("keras_model/rnncnn_latest_model_weights.h5", True)
+                path = "../results/keras_model/"
+                os.makedirs(path, exist_ok=True)
+                self.combined.save(os.path.join(path, "rnncnn_latest_model.h5"), include_optimizer=False)
+                self.combined.save_weights(os.path.join(path, "rnncnn_latest_model_weights.h5"), True)
                 self.validate(counter, batches_dev)
             counter += 1
 

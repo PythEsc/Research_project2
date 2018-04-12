@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+import os
 import sklearn.metrics
 from keras.layers import Input, Dense, Dropout, Embedding, LSTM
 from keras.models import Sequential, Model
@@ -138,8 +139,10 @@ class TextRNN_Keras():
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                self.rnn.save("keras_model/three_layer_nomaxpool_latest_model.h5", include_optimizer=False)
-                self.rnn.save_weights("keras_model/three_layer_nomaxpool_latest_model_weights.h5", True)
+                path = "../results/keras_model/"
+                os.makedirs(path, exist_ok=True)
+                self.rnn.save(os.path.join(path, "three_layer_nomaxpool_latest_model.h5"), include_optimizer=False)
+                self.rnn.save_weights(os.path.join(path, "three_layer_nomaxpool_latest_model_weights.h5"), True)
                 self.validate(counter, batches_dev)
             counter += 1
 

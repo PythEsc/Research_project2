@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+import os
 import sklearn.metrics
 from keras.layers import Activation
 from keras.layers import Input, Dense, Reshape, Flatten, MaxPooling2D, Embedding, BatchNormalization
@@ -143,8 +144,10 @@ class TextCNN_Keras():
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                self.cnn.save("keras_model/three_layer_nomaxpooljustattheend_latest_model.h5", include_optimizer=False)
-                self.cnn.save_weights("keras_model/three_layer_nomaxpooljustattheend_latest_model_weights.h5", True)
+                path = "../results/keras_model/"
+                os.makedirs(path, exist_ok=True)
+                self.cnn.save(os.path.join(path, "three_layer_nomaxpooljustattheend_latest_model.h5"), include_optimizer=False)
+                self.cnn.save_weights(os.path.join(path, "three_layer_nomaxpooljustattheend_latest_model_weights.h5"), True)
                 self.validate(counter, batches_dev)
             counter += 1
 
