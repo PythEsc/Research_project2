@@ -33,33 +33,22 @@ class MongodbStorage(DataStorage):
         cursor = post_collection.find(filter=filter, no_cursor_timeout=True)
 
         batch = []
-        counter = 0
-        size = cursor.count()
         for entry in cursor:
             batch.append(Post(entry))
-            counter += 1
-            print("\r%.2f%%" % (counter / size * 100), end='')
             if len(batch) is batch_size:
                 yield batch
                 batch = []
 
         cursor.close()
-        print("\n")
         yield batch
         return
 
     def iterate_single_post(self, filter: dict) -> list:
         post_collection = self.db[MongodbStorage.TABLE_POSTS]
         cursor = post_collection.find(filter=filter, no_cursor_timeout=True).batch_size(100)
-
-        counter = 0
-        size = cursor.count()
         for entry in cursor:
-            counter += 1
-            print("\r%.2f%%" % (counter / size * 100), end='')
             yield Post(entry)
         cursor.close()
-        print("\n")
 
     def select_multiple_posts(self, filter: dict) -> list:
         post_collection = self.db[MongodbStorage.TABLE_POSTS]

@@ -3,7 +3,7 @@ from __future__ import print_function, division
 import numpy as np
 import os
 import sklearn.metrics
-from keras.layers import Activation
+from keras.layers import Activation, Dropout
 from keras.layers import Input, Dense, Reshape, Flatten, MaxPooling2D, Embedding, BatchNormalization
 from keras.layers.convolutional import Conv2D
 from keras.models import Sequential, Model
@@ -20,6 +20,7 @@ class TextCNN_Keras():
     def __init__(self, settings: dict):
         self.settings = settings
         self.vocab_processor = None
+        self.checkpoint_path = settings["checkpoint_path"]
 
         # Read in the data
         self.x_train, self.x_dev, self.y_train, self.y_dev = self.read_data()
@@ -41,7 +42,7 @@ class TextCNN_Keras():
 
     def load_checkpoint(self):
         from keras.models import load_model
-        self.cnn = load_model("../../checkpoints/checkpoint_gp_wgan/model/gp_wgan/latest_model.h5")
+        self.cnn = load_model(self.checkpoint_path + "/latest_model.h5")
 
     def build_cnn(self):
         model = Sequential()
@@ -57,7 +58,7 @@ class TextCNN_Keras():
             if self.settings["use_max_pooling"]:
                 model.add(MaxPooling2D())
         model.add(Flatten())
-        # model.add(Dropout(self.dropout_keep_prob))
+        model.add(Dropout(self.settings["dropout_keep_prob"]))
         model.add(Dense(self.num_classes, activation="softmax"))
 
         model.summary()
@@ -144,10 +145,10 @@ class TextCNN_Keras():
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                path = "../results/keras_model/"
+                path = self.checkpoint_path
                 os.makedirs(path, exist_ok=True)
-                self.cnn.save(os.path.join(path, "three_layer_nomaxpooljustattheend_latest_model.h5"), include_optimizer=False)
-                self.cnn.save_weights(os.path.join(path, "three_layer_nomaxpooljustattheend_latest_model_weights.h5"), True)
+                self.cnn.save(os.path.join(path, "model.h5"), include_optimizer=False)
+                self.cnn.save_weights(os.path.join(path, "model_weights.h5"), True)
                 self.validate(counter, batches_dev)
             counter += 1
 

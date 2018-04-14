@@ -3,7 +3,7 @@ from __future__ import print_function, division
 import numpy as np
 import os
 import sklearn.metrics
-from keras.layers import Activation
+from keras.layers import Activation, BatchNormalization
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D, Embedding, LSTM, Average
 from keras.layers.convolutional import Conv2D
 from keras.models import Sequential, Model
@@ -20,6 +20,8 @@ class TextRNNCNN_Keras():
     def __init__(self, settings: dict):
         self.settings = settings
         self.vocab_processor = None
+        self.checkpoint_path = settings["checkpoint_path"]
+        self.lstm_layers = settings["lstm_layers"]
 
         # Read in the data
         self.x_train, self.x_dev, self.y_train, self.y_dev = self.read_data()
@@ -46,17 +48,13 @@ class TextRNNCNN_Keras():
         self.combined = Model(inputs=[self.input_x], outputs=[self.combined_output])
         self.combined.compile(loss="mse", metrics=['accuracy'], optimizer=optimizer)
 
-    # def load_checkpoint(self):
-    #     from keras.models import load_model
-    #     self.combined = load_model("latest_model.h5")
-
     def build_rnn(self):
         model = Sequential()
         model.add(
             Embedding(input_dim=self.vocab_size, output_dim=self.settings["embedding_dim"],
                       input_shape=(self.sequence_length,)))
-        for i in range(self.settings["lstm_layers"]):
-            return_sequences = i < (self.settings["lstm_layers"] - 1)
+        for i in range(self.lstm_layers):
+            return_sequences = i < (self.lstm_layers - 1)
             model.add(LSTM(self.settings["embedding_dim"], return_sequences=return_sequences))
 
         # model.add(Flatten())
@@ -75,17 +73,15 @@ class TextRNNCNN_Keras():
             Embedding(input_dim=self.vocab_size, output_dim=self.settings["embedding_dim"],
                       input_shape=(self.sequence_length,)))
         model.add(Reshape((self.sequence_length, self.settings["embedding_dim"], 1)))
-        model.add(Conv2D(40, 4))
-        model.add(Activation(activation="relu"))
-        # model.add(MaxPooling2D())
-        model.add(Conv2D(64, 3))
-        model.add(Activation(activation="relu"))
-        # model.add(MaxPooling2D())
-        model.add(Conv2D(128, 3))
-        model.add(Activation(activation="relu"))
-        model.add(MaxPooling2D())
+        for i in range(self.settings["convolution_layers"]):
+            model.add(Conv2D(40, 4))
+            model.add(Activation(activation="relu"))
+            if self.settings["use_bn"]:
+                model.add(BatchNormalization())
+            if self.settings["use_max_pooling"]:
+                model.add(MaxPooling2D())
         model.add(Flatten())
-        # model.add(Dropout(self.dropout_keep_prob))
+        model.add(Dropout(self.settings["dropout_keep_prob"]))
         model.add(Dense(self.num_classes, activation="softmax"))
 
         model.summary()
@@ -173,10 +169,10 @@ class TextRNNCNN_Keras():
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                path = "../results/keras_model/"
+                path = self.checkpoint_path
                 os.makedirs(path, exist_ok=True)
-                self.combined.save(os.path.join(path, "rnncnn_latest_model.h5"), include_optimizer=False)
-                self.combined.save_weights(os.path.join(path, "rnncnn_latest_model_weights.h5"), True)
+                self.combined.save(os.path.join(path, "model.h5"), include_optimizer=False)
+                self.combined.save_weights(os.path.join(path, "model_weights.h5"), True)
                 self.validate(counter, batches_dev)
             counter += 1
 

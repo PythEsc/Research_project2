@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 DEFAULT_DICT = OrderedDict()
 
+DEFAULT_DICT["checkpoint_path"] = "../results"  # Percentage of the training data to use for validation
 DEFAULT_DICT["dev_sample_percentage"] = .1  # Percentage of the training data to use for validation
 DEFAULT_DICT["positive_data_file"] = "./data/rt-polaritydata/rt-polarity.pos"  # Data source for the positive data.
 DEFAULT_DICT["negative_data_file"] = "./data/rt-polaritydata/rt-polarity.neg"  # Data source for the negative data.
@@ -12,7 +13,7 @@ DEFAULT_DICT["negative_data_file"] = "./data/rt-polaritydata/rt-polarity.neg"  #
 DEFAULT_DICT["embedding_dim"] = 50  # Dimensionality of character embedding (default: 128)
 DEFAULT_DICT["filter_sizes"] = "3,4,5"  # Comma-separated filter sizes (default: '3,4,5')
 DEFAULT_DICT["num_filters"] = 40  # Number of filters per filter size (default: 128)
-DEFAULT_DICT["dropout_keep_prob"] = 0.5  # Dropout keep probability (default: 0.5)
+DEFAULT_DICT["dropout_keep_prob"] = 0.2  # Dropout keep probability (default: 0.5)
 DEFAULT_DICT["l2_reg_lambda"] = 0.0  # L2 regularization lambda (default: 0.0)
 DEFAULT_DICT["lstm_layers"] = 2  # LSTM Layer (default: 2)
 DEFAULT_DICT["convolution_layers"] = 1  # LSTM Layer (default: 2)
@@ -50,6 +51,13 @@ def create_default_config(path: str):
 
     with open(path, 'w') as config_file:
         json.dump(DEFAULT_DICT, config_file)
+
+
+def create_config_from_dict(path: str, dictionary: dict):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    with open(path, 'w') as config_file:
+        json.dump(dictionary, config_file)
 
 
 if __name__ == '__main__':

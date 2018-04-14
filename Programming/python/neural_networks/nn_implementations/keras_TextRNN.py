@@ -18,8 +18,9 @@ class TextRNN_Keras():
     def __init__(self, settings: dict):
         self.settings = settings
         self.vocab_processor = None
+        self.checkpoint_path = settings["checkpoint_path"]
 
-        self.lstm_layers = 2
+        self.lstm_layers = settings["lstm_layers"]
         # Read in the data
         self.x_train, self.x_dev, self.y_train, self.y_dev = self.read_data()
         # Get the dimensions for the network by reading the data
@@ -40,7 +41,8 @@ class TextRNN_Keras():
 
     def load_checkpoint(self):
         from keras.models import load_model
-        self.rnn = load_model("../../checkpoints/checkpoint_gp_wgan/model/gp_wgan/latest_model.h5")
+        self.rnn = load_model(self.checkpoint_path + "model.h5")
+        self.rnn.load_weights(self.checkpoint_path + "model_weights.h5")
 
     def build_rnn(self):
         model = Sequential()
@@ -139,10 +141,10 @@ class TextRNN_Keras():
 
             # If at save interval => save generated image samples
             if counter % 500 == 0:
-                path = "../results/keras_model/"
+                path = self.checkpoint_path
                 os.makedirs(path, exist_ok=True)
-                self.rnn.save(os.path.join(path, "three_layer_nomaxpool_latest_model.h5"), include_optimizer=False)
-                self.rnn.save_weights(os.path.join(path, "three_layer_nomaxpool_latest_model_weights.h5"), True)
+                self.rnn.save(os.path.join(path, "model.h5"), include_optimizer=False)
+                self.rnn.save_weights(os.path.join(path, "model_weights.h5"), True)
                 self.validate(counter, batches_dev)
             counter += 1
 

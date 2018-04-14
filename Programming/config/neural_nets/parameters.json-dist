@@ -17,5 +17,6 @@
   "checkpoint_every": 100,
   "num_checkpoints": 5,
   "allow_soft_placement": true,
-  "log_device_placement": false
+  "log_device_placement": false,
+  "self.checkpoint_path": "../results"
 }
