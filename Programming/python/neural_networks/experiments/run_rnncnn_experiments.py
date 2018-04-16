@@ -2,27 +2,28 @@ import json
 import os
 import sys
 
-from neural_networks.nn_implementations.keras_TextCNN import TextCNN_Keras
+from neural_networks.nn_implementations.keras_TextRNNCNN import TextRNNCNN_Keras
 from neural_networks.util.configuration_loader import DEFAULT_DICT
 
 
-def create_parameters(learning_rate, conv_layer, use_bn, use_maxpooling):
+def create_parameters(learning_rate, num_layer, use_bn, use_maxpooling):
     import datetime
     from dateutil.tz import tzlocal
 
     now = datetime.datetime.now(tzlocal())
     timestamp = now.strftime('%y%m%d_%H_%M_%S')
-    time_string = "../../results/CNN/" + timestamp
+    time_string = "../../results/RNNCNN/" + timestamp
 
-    config_file_name = time_string + "/learning_rate{}_convlayer{}_usebn{}_usemaxpool{}.json".format(learning_rate,
-                                                                                                     conv_layer, use_bn,
-                                                                                                     use_maxpooling)
+    config_file_name = time_string + "/learning_rate{}_numlayer{}_usebn{}_usemaxpool{}.json".format(learning_rate,
+                                                                                                    num_layer, use_bn,
+                                                                                                    use_maxpooling)
     open_file = None
     if not os.path.exists(config_file_name):
         if not os.path.exists(time_string):
             os.makedirs(time_string, mode=0o744)
         parameters = DEFAULT_DICT
-        parameters["convolution_layers"] = conv_layer
+        parameters["convolution_layers"] = num_layer
+        parameters["lstm_layers"] = num_layer
         parameters["use_bn"] = use_bn
         parameters["use_max_pooling"] = use_maxpooling
         parameters["checkpoint_path"] = time_string + "/checkpoints"
@@ -41,24 +42,24 @@ def create_parameters(learning_rate, conv_layer, use_bn, use_maxpooling):
     return parameters, open_file
 
 
-def process_cnn_experiments():
+def process_rnncnn_experiments():
     console_std_out = sys.stdout
     for learning_rate in [0.005, 0.001, 0.0005, 0.0001]:
-        for conv_layer in [1, 2, 3]:
+        for num_layer in [1, 2, 3]:
             for use_bn in [True]:
                 for use_maxpooling in [True]:
                     sys.stdout = console_std_out
                     print(
-                        "Start combination learning_rate: {}, conv_layer: {}, use_bn: {} and use_maxpooling: {}".format(
-                            learning_rate, conv_layer, use_bn, use_maxpooling))
+                        "Start combination learning_rate: {}, lstm_layer {},conv_layer: {}, use_bn: {} and use_maxpooling: {}".format(
+                            learning_rate, num_layer, num_layer, use_bn, use_maxpooling))
                     print("Training started!")
                     # Parameter creation/loading
-                    parameters, open_file = create_parameters(learning_rate=learning_rate, conv_layer=conv_layer,
+                    parameters, open_file = create_parameters(learning_rate=learning_rate, num_layer=num_layer,
                                                               use_bn=use_bn, use_maxpooling=use_maxpooling)
 
                     # Start the network
-                    cnn = TextCNN_Keras(parameters)
-                    cnn.train()
+                    rnn_cnn = TextRNNCNN_Keras(parameters)
+                    rnn_cnn.train()
                     open_file.close()
 
                     sys.stdout = console_std_out
