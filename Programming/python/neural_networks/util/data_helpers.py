@@ -1,28 +1,7 @@
-import numpy as np
 import re
 
 from importer.database.data_types import Post
 from importer.database.database_access import DataStorage
-
-
-def batch_iter(data, batch_size, num_epochs, shuffle=True):
-    """
-    Generates a batch iterator for a dataset.
-    """
-    data = np.array(data)
-    data_size = len(data)
-    num_batches_per_epoch = int((len(data) - 1) / batch_size)
-    for epoch in range(num_epochs):
-        # Shuffle the data at each epoch
-        if shuffle:
-            shuffle_indices = np.random.permutation(np.arange(data_size))
-            shuffled_data = data[shuffle_indices]
-        else:
-            shuffled_data = data
-        for batch_num in range(num_batches_per_epoch):
-            start_index = batch_num * batch_size
-            end_index = min((batch_num + 1) * batch_size, data_size)
-            yield shuffled_data[start_index:end_index]
 
 
 def get_training_set(db: DataStorage, threshold: int = 1, use_likes: bool = False):
@@ -55,7 +34,39 @@ def get_training_set(db: DataStorage, threshold: int = 1, use_likes: bool = Fals
         filtered_posts.append(post)
         new_reactions_matrix.append(new_reactions)
 
+        if len(filtered_posts) >= 50000:
+            break
+
+    print("Finished loading dataset containing {} samples".format(len(filtered_posts)))
+
     return [filtered_posts, new_reactions_matrix]
+
+
+def training_set_iter(db: DataStorage, threshold: int = 1, use_likes: bool = False):
+    if use_likes:
+        reactions_right_list = ["LIKE", "LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
+    else:
+        reactions_right_list = ["LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
+
+    post_filter = {Post.COLL_MESSAGE: {'$exists': True}, Post.COLL_REACTIONS: {'$exists': True}}
+    for post in db.iterate_single_post(post_filter):
+        message = post.message
+        reactions = post.reactions
+
+        reaction_sum = 0
+        for key in reactions_right_list:
+            reaction_sum += reactions[key]
+
+        if reaction_sum < threshold:
+            continue
+
+        new_reactions = []
+        for key in reactions_right_list:
+            new_reactions.append(reactions[key] / reaction_sum)
+
+        message = clean_text(text=[message])[0]
+
+        yield message, new_reactions
 
 
 def get_training_set_with_emotions(db: DataStorage, threshold: int = 1, use_likes: bool = False):
@@ -93,7 +104,7 @@ def get_training_set_with_emotions(db: DataStorage, threshold: int = 1, use_like
         emots_sum = sum(emots)
         if emots_sum > 1:
             for e in emots:
-                new_emots.append(e/emots_sum)
+                new_emots.append(e / emots_sum)
         else:
             new_emots = emots
 
@@ -104,7 +115,7 @@ def get_training_set_with_emotions(db: DataStorage, threshold: int = 1, use_like
     return [filtered_posts, new_reactions_matrix, new_emotions]
 
 
-def clean_text(text):
+def clean_text(text: list):
     clean_text = []
     for t in text:
         # To lower case

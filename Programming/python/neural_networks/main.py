@@ -1,4 +1,5 @@
-from neural_networks.experiments.run_cnn_experiments import process_cnn_experiments
+import neural_networks.experiments.run_experiments as exp
+from neural_networks.nn_implementations.keras_TextCNN import TextCNN_Keras
 from neural_networks.nn_implementations.keras_TextRNNCNN import TextRNNCNN_Keras
 from neural_networks.util import configuration_loader
 
@@ -6,7 +7,7 @@ if __name__ == '__main__':
     start_experiments = True
 
     if start_experiments:
-        process_cnn_experiments()
+        exp.process_experiments(TextCNN_Keras, exp.create_parameters_cnn)
     else:
         config = configuration_loader.load_config(path="../config/neural_nets/parameters.json")
 

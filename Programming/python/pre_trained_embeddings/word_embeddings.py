@@ -43,7 +43,7 @@ class WordEmbeddings():
                 vocab.append(row[0])
                 embd.append(row[1:])
         self.vocab = vocab
-        self.embd = np.array(embd).astype(np.float32)
+        self.embd = np.array(embd, dtype=np.float32)
         self.categorical_vocab = self._create_categorical_vocabulary(self.vocab)
 
         print('Embedding loaded.')

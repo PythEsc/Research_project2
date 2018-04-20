@@ -80,11 +80,13 @@ if __name__ == '__main__':
     db = MongodbStorage()
     reactions_list = ["LIKE", "LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
 
+    posts_with_reactions = []
+
     count = db.count_posts(filter={})
     for index, post in enumerate(db.iterate_single_post(filter={})):
         assert isinstance(post, Post)
 
-        print("Completed %.2f%%" % ((index + 1) / count * 100))
+        print("\rReading data %.2f%%" % ((index + 1) / count * 100), end='')
 
         sum = 0
         for key in reactions_list:
@@ -92,9 +94,16 @@ if __name__ == '__main__':
         if sum == 0:
             continue
 
-        for index, sentence in enumerate(get_synonym(post.message)):
+        posts_with_reactions.append(post)
+
+    count = len(posts_with_reactions)
+    for index, post in enumerate(posts_with_reactions):
+
+        print("\rProcessing data %.2f%%" % ((index + 1) / count * 100), end='')
+
+        for i, sentence in enumerate(get_synonym(post.message)):
             data = dict(post.data)
             data[Post.COLL_MESSAGE] = sentence
-            data[Post.COLL_POST_ID] += "_{}".format(index)
+            data[Post.COLL_POST_ID] += "_{}".format(i)
             new_post = Post(data)
             db.insert_post(new_post)
