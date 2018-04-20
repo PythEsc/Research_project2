@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from importer.database.data_types import Post
 from importer.database.database_access import DataStorage
@@ -42,11 +43,15 @@ def get_training_set(db: DataStorage, threshold: int = 1, use_likes: bool = Fals
     return [filtered_posts, new_reactions_matrix]
 
 
-def training_set_iter(db: DataStorage, threshold: int = 1, use_likes: bool = False):
+def training_set_iter(db: DataStorage, threshold: int = 1, use_likes: bool = False,
+                      max_post_length: Optional[int] = None):
     if use_likes:
         reactions_right_list = ["LIKE", "LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
     else:
         reactions_right_list = ["LOVE", "WOW", "HAHA", "SAD", "ANGRY"]
+
+    skipped_counter_reactions = 0
+    skipped_counter_length = 0
 
     post_filter = {Post.COLL_MESSAGE: {'$exists': True}, Post.COLL_REACTIONS: {'$exists': True}}
     for post in db.iterate_single_post(post_filter):
@@ -58,6 +63,7 @@ def training_set_iter(db: DataStorage, threshold: int = 1, use_likes: bool = Fal
             reaction_sum += reactions[key]
 
         if reaction_sum < threshold:
+            skipped_counter_reactions += 1
             continue
 
         new_reactions = []
@@ -66,7 +72,20 @@ def training_set_iter(db: DataStorage, threshold: int = 1, use_likes: bool = Fal
 
         message = clean_text(text=[message])[0]
 
+        if max_post_length is not None:
+            length = len(message.split(" "))
+            if length > max_post_length:
+                skipped_counter_length += 1
+                continue
+
         yield message, new_reactions
+
+    if threshold > 0:
+        print("{} posts were skipped because they did not fulfill the reaction-sum requirement".format(
+            str(skipped_counter_reactions)))
+    if max_post_length is not None:
+        print("{} posts were skipped because they did not fulfill the maximum-length requirement".format(
+            str(skipped_counter_length)))
 
 
 def get_training_set_with_emotions(db: DataStorage, threshold: int = 1, use_likes: bool = False):

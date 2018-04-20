@@ -53,9 +53,9 @@ class TextRNNCNN_Keras(TextNN_Keras):
             model.add(Activation(activation="relu"))
             if self.settings["use_bn"]:
                 model.add(BatchNormalization())
-            model.add(Dropout(self.settings["dropout_keep_prob"]))
         if self.settings["use_max_pooling"]:
             model.add(MaxPooling2D())
+        model.add(Dropout(self.settings["dropout_keep_prob"]))
         model.add(Flatten())
         model.add(Dense(self.num_classes, activation="softmax"))
 

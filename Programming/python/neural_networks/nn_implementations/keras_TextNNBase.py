@@ -4,9 +4,10 @@ from collections import Iterable
 
 import numpy as np
 import sklearn
-from keras import Input, metrics, losses
+from keras import Input, losses
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from keras.optimizers import Adam
+from sklearn.utils import shuffle
 from tensorflow.contrib import learn
 
 from importer.database.database_access import DataStorage
@@ -40,9 +41,12 @@ class TextNN_Keras(ABC):
 
         # Build and compile the generator
         self.nn = self.build()
-        self.nn.compile(loss=losses.categorical_crossentropy,
-                        metrics=[metrics.mean_squared_error],
+        self.nn.compile(loss=losses.mean_squared_error,
                         optimizer=optimizer)
+        self.callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.005, patience=8),
+                          ModelCheckpoint(filepath=self.settings["checkpoint_path"] + "/nn_best.model",
+                                          save_best_only=True),
+                          ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=4, min_lr=0.0005), NNMetric()]
 
     @abstractmethod
     def build(self):
@@ -55,7 +59,7 @@ class TextNN_Keras(ABC):
         db = MongodbStorage()
 
         # Create feature matrix using vocab from trained WordEmbeddings
-        print('\nCreating feature matrix...')
+        print('Creating feature matrix...')
         max_document_length = None
         min_document_length = None
         num_classes = None
@@ -76,19 +80,22 @@ class TextNN_Keras(ABC):
             total_document_length += length
 
         mean_document_length = total_document_length / counter
+        used_document_length = min(int(mean_document_length * 1.5), max_document_length)
 
         print('Max document length is {}.'.format(max_document_length))
         print('Mean document length is {}.'.format(mean_document_length))
         print('Min document length is {}.'.format(min_document_length))
+        print('Used document length is {}'.format(used_document_length))
         print('Total number of documents is {}'.format(counter))
 
         embedding_dim = 50
         we = WordEmbeddings(embedding_dim)
 
-        self.vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length,
-                                                                       vocabulary=we.categorical_vocab)
+        self.vocab_processor = learn.preprocessing.VocabularyProcessor(
+            max_document_length=used_document_length,
+            vocabulary=we.categorical_vocab)
 
-        return max_document_length, num_classes
+        return used_document_length, num_classes
 
     def load_checkpoint(self):
         from keras.models import load_model
@@ -97,15 +104,11 @@ class TextNN_Keras(ABC):
     def train(self):
         # Generate batches
         db = MongodbStorage()
-        for batch_x, batch_y in self.batch_iterator(db=db, batch_size=10000):
+        for batch_x, batch_y in self.batch_iterator(db=db, batch_size=5000):
             os.makedirs(self.settings["checkpoint_path"], exist_ok=True)
             self.nn.fit(batch_x, batch_y, batch_size=self.settings["batch_size"], epochs=self.settings["num_epochs"],
                         validation_split=self.settings["dev_sample_percentage"], shuffle=True, verbose=2,
-                        callbacks=[EarlyStopping(monitor='val_loss', min_delta=0.005, patience=8),
-                                   ModelCheckpoint(filepath=self.settings["checkpoint_path"] + "/nn_best.model",
-                                                   save_best_only=True),
-                                   ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=4, min_lr=0.0005),
-                                   NNMetric()])
+                        callbacks=self.callbacks)
 
     def predict(self, content: list) -> list:
         predicted = self.nn.predict(x=content, batch_size=self.settings["batch_size"])
@@ -128,7 +131,8 @@ class TextNN_Keras(ABC):
         x_batch = None
         y_batch = None
 
-        for index, set_entry in enumerate(training_set_iter(db=db, threshold=threshold, use_likes=use_likes)):
+        for index, set_entry in enumerate(training_set_iter(db=db, threshold=threshold, use_likes=use_likes,
+                                                            max_post_length=self.sequence_length)):
 
             x = set_entry[0]
             y = np.array(set_entry[1], dtype=np.float32)
@@ -144,9 +148,11 @@ class TextNN_Keras(ABC):
             y_batch[index % batch_size] = y
 
             if index % batch_size == batch_size - 1:
+                x_batch, y_batch = shuffle(x_batch, y_batch)
                 yield x_batch, y_batch
                 x_batch = None
                 y_batch = None
 
         if x_batch is not None and y_batch is not None:
+            x_batch, y_batch = shuffle(x_batch, y_batch)
             yield x_batch, y_batch

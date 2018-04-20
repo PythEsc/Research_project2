@@ -9,12 +9,10 @@ class NNMetric(Callback):
         self.precision = []
         self.recall = []
         self.f1 = []
-        self.auc = []
 
         self.cur_precision = []
         self.cur_recall = []
         self.cur_f1 = []
-        self.cur_auc = []
 
     def on_train_begin(self, logs=None):
         self.cur_precision = []
@@ -32,13 +30,13 @@ class NNMetric(Callback):
         for index, array in enumerate(val_predict):
             val_predict_classes[index] = np.array([True if value > threshold else False for value in array], dtype=bool)
 
-        val_true_classes = np.empty(shape=(len(val_targ), num_classes), dtype=bool)
+        val_targ_classes = np.empty(shape=(len(val_targ), num_classes), dtype=bool)
         for index, array in enumerate(val_targ):
-            val_true_classes[index] = np.array([True if value > threshold else False for value in array], dtype=bool)
+            val_targ_classes[index] = np.array([True if value > threshold else False for value in array], dtype=bool)
 
-        precision = precision_score(y_true=val_true_classes, y_pred=val_predict_classes, average='micro')
-        recall = recall_score(y_true=val_true_classes, y_pred=val_predict_classes, average='micro')
-        f1 = f1_score(y_true=val_true_classes, y_pred=val_predict_classes, average='micro')
+        precision = precision_score(y_true=val_targ_classes, y_pred=val_predict_classes, average='micro')
+        recall = recall_score(y_true=val_targ_classes, y_pred=val_predict_classes, average='micro')
+        f1 = f1_score(y_true=val_targ_classes, y_pred=val_predict_classes, average='micro')
 
         self.precision.append(precision)
         self.recall.append(recall)
@@ -49,16 +47,13 @@ class NNMetric(Callback):
 
     def on_train_end(self, logs=None):
         print("------------- Training Finished -------------")
-        print("Current precision: %.4f (+/- %.4f), Avg. precision: %.4f (+/- %.4f)" % (
+        print("Current precision: %.4f , Avg. precision: %.4f (+/- %.4f)" % (
             float(np.mean(self.cur_precision)),
-            float(np.std(self.cur_precision)),
             float(np.mean(self.precision)),
             float(np.std(self.precision))))
-        print("Current recall: %.4f (+/- %.4f), Avg. recall: %.4f (+/- %.4f)" % (float(np.mean(self.cur_recall)),
-                                                                                 float(np.std(self.cur_recall)),
+        print("Current recall: %.4f , Avg. recall: %.4f (+/- %.4f)" % (float(np.mean(self.cur_recall)),
                                                                                  float(np.mean(self.recall)),
                                                                                  float(np.std(self.recall))))
-        print("Current f1-score: %.4f (+/- %.4f), Avg. f1-score: %.4f (+/- %.4f)" % (float(np.mean(self.cur_f1)),
-                                                                                     float(np.std(self.cur_f1)),
+        print("Current f1-score: %.4f , Avg. f1-score: %.4f (+/- %.4f)" % (float(np.mean(self.cur_f1)),
                                                                                      float(np.mean(self.f1)),
                                                                                      float(np.std(self.f1))))
