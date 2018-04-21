@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime
 
 
 class Post:
@@ -16,9 +17,11 @@ class Post:
     COLL_COMMENT_EMOTION = "comments_emotion"
     COLL_COMMENT_SENTIMENT = "comments_sentiment"
     COLL_OFF_TOPIC = "off_topic"
+    COLL_AUGMENTED = "augmented"
 
     VALID_COLUMNS = [COLL_POST_ID, COLL_USER_ID, COLL_MESSAGE, COLL_DATE, COLL_LINK, COLL_REACTIONS,
-                     COLL_COMMENT_SENTIMENT, COLL_COMMENT_EMOTION, COLL_SENTIMENT, COLL_EMOTION, COLL_OFF_TOPIC]
+                     COLL_COMMENT_SENTIMENT, COLL_COMMENT_EMOTION, COLL_SENTIMENT, COLL_EMOTION, COLL_OFF_TOPIC,
+                     COLL_AUGMENTED]
     MANDATORY_COLUMNS = [COLL_POST_ID, COLL_USER_ID, COLL_MESSAGE, COLL_DATE, COLL_LINK, COLL_REACTIONS]
 
     def __init__(self, structure: dict):
@@ -34,7 +37,7 @@ class Post:
         for key, value in post.items():
             assert key in self.VALID_COLUMNS, "Post contains invalid key: '{key}'".format(key=key)
             assert isinstance(value, (
-                str, dict, list, bool,
+                str, dict, list, bool, datetime,
                 float)), "Post invalid. The entry for the key '{key}' is invalid: '{value}'".format(
                 key=key,
                 value=value)
@@ -81,7 +84,7 @@ class Post:
         return self.data[Post.COLL_MESSAGE]
 
     @property
-    def date(self) -> str:
+    def date(self) -> datetime:
         return self.data[Post.COLL_DATE]
 
     @property
@@ -139,6 +142,14 @@ class Post:
     @off_topic.setter
     def off_topic(self, off_topic: bool):
         self.data[Post.COLL_OFF_TOPIC] = off_topic
+
+    @property
+    def augmented(self) -> bool:
+        return self.data[Post.COLL_AUGMENTED] if Post.COLL_AUGMENTED in self.data else False
+
+    @augmented.setter
+    def augmented(self, augmented: bool):
+        self.data[Post.COLL_AUGMENTED] = augmented
 
 
 class Comment:

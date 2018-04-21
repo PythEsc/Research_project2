@@ -24,6 +24,7 @@ DEFAULT_DICT["use_bn"] = False  # Add BN Layer (default: False)
 # Training parameters
 DEFAULT_DICT["batch_size"] = 64  # Batch Size (default: 64)
 DEFAULT_DICT["num_epochs"] = 30  # Number of training epochs (default: 200)
+DEFAULT_DICT["allow_augmented_data"] = True  # Do also use data that was created with data_augmentation (default: true)
 
 
 # Misc Parameters

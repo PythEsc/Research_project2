@@ -1,13 +1,14 @@
 import json
+import logging
 import os
 import sys
-import traceback
+from logging import DEBUG
 
 from custom_logging import Logger
 from neural_networks.util.configuration_loader import DEFAULT_DICT
 
 
-def create_parameters_rnncnn(learning_rate, num_layer):
+def create_parameters_rnncnn(learning_rate, num_layer, file_handler):
     import datetime
     from dateutil.tz import tzlocal
 
@@ -27,21 +28,21 @@ def create_parameters_rnncnn(learning_rate, num_layer):
         parameters["use_max_pooling"] = True
         parameters["checkpoint_path"] = time_string + "/checkpoints"
         parameters["learning_rate"] = learning_rate
+        parameters["allow_augmented_data"] = True
 
         # Redirect the console prints to the log file for better evaluation later
         logging_path = "{}/{}.log".format(time_string, "rnncnn")
+        if file_handler is not None:
+            logging.getLogger().removeHandler(file_handler)
+        else:
+            logging.getLogger().setLevel(DEBUG)
+            logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+            sys.stdout = Logger(logging.info)
+            sys.stderr = Logger(logging.warning)
 
-        std_out = Logger.get(file_path=logging_path, classname="STDOUT", console_out=sys.stdout)
-        err_out = Logger.get(file_path=logging_path, classname="STDERR", console_out=sys.stderr)
-
-        def log_exception(type, value, tb):
-            err_out.exception(
-                "Uncaught exception {0}: {1}\n{2}".format(str(type.__name__), str(value),
-                                                          ''.join(traceback.format_tb(tb))))
-
-        sys.excepthook = log_exception
-        sys.stdout = Logger(std_out.info)
-        sys.stderr = Logger(err_out.warning)
+        file_handler = logging.FileHandler(logging_path)
+        file_handler.setLevel(DEBUG)
+        logging.getLogger().addHandler(file_handler)
 
         # Save this dict to the json file in the results folder to trace the results later
         with open(config_file_name, 'x') as outfile:
@@ -49,10 +50,10 @@ def create_parameters_rnncnn(learning_rate, num_layer):
     else:
         with open(config_file_name, 'r') as outfile:
             parameters = json.load(outfile)
-    return parameters
+    return parameters, file_handler
 
 
-def create_parameters_cnn(learning_rate, num_layer):
+def create_parameters_cnn(learning_rate, num_layer, file_handler):
     import datetime
     from dateutil.tz import tzlocal
 
@@ -71,21 +72,21 @@ def create_parameters_cnn(learning_rate, num_layer):
         parameters["use_max_pooling"] = True
         parameters["checkpoint_path"] = time_string + "/checkpoints"
         parameters["learning_rate"] = learning_rate
+        parameters["allow_augmented_data"] = True
 
         # Redirect the console prints to the log file for better evaluation later
         logging_path = "{}/{}.log".format(time_string, "cnn")
+        if file_handler is not None:
+            logging.getLogger().removeHandler(file_handler)
+        else:
+            logging.getLogger().setLevel(DEBUG)
+            logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+            sys.stdout = Logger(logging.info)
+            sys.stderr = Logger(logging.warning)
 
-        std_out = Logger.get(file_path=logging_path, classname="STDOUT", console_out=sys.stdout)
-        err_out = Logger.get(file_path=logging_path, classname="STDERR", console_out=sys.stderr)
-
-        def log_exception(type, value, tb):
-            err_out.exception(
-                "Uncaught exception {0}: {1}\n{2}".format(str(type.__name__), str(value),
-                                                          ''.join(traceback.format_tb(tb))))
-
-        sys.excepthook = log_exception
-        sys.stdout = Logger(std_out.info)
-        sys.stderr = Logger(err_out.warning)
+        file_handler = logging.FileHandler(logging_path)
+        file_handler.setLevel(DEBUG)
+        logging.getLogger().addHandler(file_handler)
 
         # Save this dict to the json file in the results folder to trace the results later
         with open(config_file_name, 'x') as outfile:
@@ -93,10 +94,10 @@ def create_parameters_cnn(learning_rate, num_layer):
     else:
         with open(config_file_name, 'r') as outfile:
             parameters = json.load(outfile)
-    return parameters
+    return parameters, file_handler
 
 
-def create_parameters_rnn(learning_rate, num_layer):
+def create_parameters_rnn(learning_rate, num_layer, file_handler):
     import datetime
     from dateutil.tz import tzlocal
     now = datetime.datetime.now(tzlocal())
@@ -111,21 +112,21 @@ def create_parameters_rnn(learning_rate, num_layer):
         parameters["lstm_layers"] = num_layer
         parameters["checkpoint_path"] = time_string + "/checkpoints"
         parameters["learning_rate"] = learning_rate
+        parameters["allow_augmented_data"] = True
 
         # Redirect the console prints to the log file for better evaluation later
         logging_path = "{}/{}.log".format(time_string, "rnn")
+        if file_handler is not None:
+            logging.getLogger().removeHandler(file_handler)
+        else:
+            logging.getLogger().setLevel(DEBUG)
+            logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+            sys.stdout = Logger(logging.info)
+            sys.stderr = Logger(logging.warning)
 
-        std_out = Logger.get(file_path=logging_path, classname="STDOUT", console_out=sys.stdout)
-        err_out = Logger.get(file_path=logging_path, classname="STDERR", console_out=sys.stderr)
-
-        def log_exception(type, value, tb):
-            err_out.exception(
-                "Uncaught exception {0}: {1}\n{2}".format(str(type.__name__), str(value),
-                                                          ''.join(traceback.format_tb(tb))))
-
-        sys.excepthook = log_exception
-        sys.stdout = Logger(std_out.info)
-        sys.stderr = Logger(err_out.warning)
+        file_handler = logging.FileHandler(logging_path)
+        file_handler.setLevel(DEBUG)
+        logging.getLogger().addHandler(file_handler)
 
         # Save this dict to the json file in the results folder to trace the results later
         with open(config_file_name, 'x') as outfile:
@@ -133,18 +134,18 @@ def create_parameters_rnn(learning_rate, num_layer):
     else:
         with open(config_file_name, 'r') as outfile:
             parameters = json.load(outfile)
-    return parameters
+    return parameters, file_handler
 
 
 def process_experiments(neural_network, create_parameters):
-    console_std_out = sys.stdout
+    f_handler = None
     for learning_rate in [0.001, 0.0005, 0.0001]:
         for num_layer in [1, 2, 3]:
-            sys.stdout = console_std_out
             print("Start combination learning_rate: {}, layer: {}".format(learning_rate, num_layer, num_layer))
             print("Setup network")
             # Parameter creation/loading
-            parameters = create_parameters(learning_rate=learning_rate, num_layer=num_layer)
+            parameters, f_handler = create_parameters(learning_rate=learning_rate, num_layer=num_layer,
+                                                      file_handler=f_handler)
 
             # Start the network
             nn = neural_network(parameters)
@@ -152,8 +153,10 @@ def process_experiments(neural_network, create_parameters):
             print("Training started!")
             nn.train()
 
-            sys.stdout = console_std_out
             print("Training finished!")
+
+            nn.validate()
+
             # Reset the Keras session, otherwise the last session will be used
             from keras import backend as K
             K.clear_session()

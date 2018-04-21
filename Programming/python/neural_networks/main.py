@@ -19,7 +19,7 @@ if __name__ == '__main__':
                    "This cookies were so old and dry they are disgusting :(",
                    "The employees in this supermarket are so rude."]
 
-        predicted_reactions = combined.predict(content=content)
+        predicted_reactions = combined.predict(x=content)
 
         for i, r in enumerate(content):
             print('{}:\n{}'.format(r, predicted_reactions[i]))

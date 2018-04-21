@@ -4,7 +4,7 @@ from collections import Iterable
 
 import numpy as np
 import sklearn
-from keras import Input, losses
+from keras import Input, losses, Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from keras.optimizers import Adam
 from sklearn.utils import shuffle
@@ -13,7 +13,7 @@ from tensorflow.contrib import learn
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
 from neural_networks.callbacks.nn_metrics import NNMetric
-from neural_networks.util.data_helpers import training_set_iter
+from neural_networks.util.data_helpers import training_set_iter, validation_set_iter
 from pre_trained_embeddings.word_embeddings import WordEmbeddings
 
 
@@ -41,6 +41,7 @@ class TextNN_Keras(ABC):
 
         # Build and compile the generator
         self.nn = self.build()
+        assert isinstance(self.nn, Model)
         self.nn.compile(loss=losses.mean_squared_error,
                         optimizer=optimizer)
         self.callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.005, patience=8),
@@ -66,7 +67,8 @@ class TextNN_Keras(ABC):
         total_document_length = 0
         counter = 0
 
-        for counter, set_entry in enumerate(training_set_iter(db=db)):
+        for counter, set_entry in enumerate(
+                training_set_iter(db=db, allow_augmented_data=self.settings["allow_augmented_data"])):
             text = set_entry[0]
             reactions = set_entry[1]
 
@@ -104,35 +106,52 @@ class TextNN_Keras(ABC):
     def train(self):
         # Generate batches
         db = MongodbStorage()
-        for batch_x, batch_y in self.batch_iterator(db=db, batch_size=5000):
+        for train_tuple, valid_tuple in zip(self.training_batch_iterator(db=db, batch_size=5000),
+                                            self.validation_batch_iterator(db=db, batch_size=500)):
             os.makedirs(self.settings["checkpoint_path"], exist_ok=True)
-            self.nn.fit(batch_x, batch_y, batch_size=self.settings["batch_size"], epochs=self.settings["num_epochs"],
-                        validation_split=self.settings["dev_sample_percentage"], shuffle=True, verbose=2,
-                        callbacks=self.callbacks)
+            self.nn.fit(x=train_tuple[0], y=train_tuple[1], batch_size=self.settings["batch_size"],
+                        epochs=self.settings["num_epochs"],
+                        validation_data=valid_tuple, shuffle=True, verbose=2, callbacks=self.callbacks)
 
-    def predict(self, content: list) -> list:
-        predicted = self.nn.predict(x=content, batch_size=self.settings["batch_size"])
-        return predicted.tolist()
+    def predict(self, x: list) -> np.array:
+        return np.asarray(self.nn.predict(x, batch_size=self.settings["batch_size"], verbose=2))
 
-    def validate(self, counter, batches_dev):
-        acc_mse = []
-        for batch_dev in batches_dev:
-            x_batch, y_batch = zip(*batch_dev)
+    def validate(self):
+        db = MongodbStorage()
 
-            x_batch = np.array(x_batch)
-            y_batch = np.array(y_batch)
+        precision = []
+        recall = []
+        f1 = []
+        mse = []
 
-            result = self.nn.predict(x_batch)
-            mse = sklearn.metrics.mean_squared_error(result, y_batch)
-            acc_mse.append(mse)
-        print("%d Validation[CNN loss: %f]" % (counter, float(np.mean(np.array(acc_mse)))))
+        for batch_x, batch_y in self.validation_batch_iterator(db=db, batch_size=5000):
+            predicted = self.predict(x=batch_x)
 
-    def batch_iterator(self, db: DataStorage, batch_size: int, threshold: int = 1, use_likes: bool = False) -> Iterable:
+            mse_value = sklearn.metrics.mean_squared_error(batch_y, predicted)
+            precision_value, recall_value, f1_value = NNMetric.evaluate(num_classes=batch_y.shape[1],
+                                                                        val_predict=predicted,
+                                                                        val_targ=batch_y)
+
+            mse.append(mse_value)
+            precision.append(precision_value)
+            recall.append(recall_value)
+            f1.append(f1_value)
+
+        print("------------- Validation Finished -------------")
+        print("Avg. MSE: %.4f (+/- %.4f)" % (float(np.mean(mse)), float(np.std(mse))))
+        print("Avg. precision: %.4f (+/- %.4f)" % (float(np.mean(precision)), float(np.std(precision))))
+        print("Avg. recall: %.4f (+/- %.4f)" % (float(np.mean(recall)), float(np.std(recall))))
+        print("Avg. f1-score: %.4f (+/- %.4f)" % (float(np.mean(f1)), float(np.std(f1))))
+
+    def training_batch_iterator(self, db: DataStorage, batch_size: int, threshold: int = 1,
+                                use_likes: bool = False) -> Iterable:
         x_batch = None
         y_batch = None
 
-        for index, set_entry in enumerate(training_set_iter(db=db, threshold=threshold, use_likes=use_likes,
-                                                            max_post_length=self.sequence_length)):
+        index = 0
+        for index, set_entry in enumerate(
+                training_set_iter(db=db, threshold=threshold, use_likes=use_likes, max_post_length=self.sequence_length,
+                                  allow_augmented_data=self.settings["allow_augmented_data"])):
 
             x = set_entry[0]
             y = np.array(set_entry[1], dtype=np.float32)
@@ -154,5 +173,45 @@ class TextNN_Keras(ABC):
                 y_batch = None
 
         if x_batch is not None and y_batch is not None:
+            x_batch = x_batch[:(index % batch_size) + 1]
+            y_batch = y_batch[:(index % batch_size) + 1]
+
+            x_batch, y_batch = shuffle(x_batch, y_batch)
+            yield x_batch, y_batch
+
+    def validation_batch_iterator(self, db: DataStorage, batch_size: int, threshold: int = 1,
+                                  use_likes: bool = False) -> Iterable:
+        x_batch = None
+        y_batch = None
+
+        index = 0
+        for index, set_entry in enumerate(
+                validation_set_iter(db=db, threshold=threshold, use_likes=use_likes,
+                                    max_post_length=self.sequence_length,
+                                    allow_augmented_data=self.settings["allow_augmented_data"])):
+
+            x = set_entry[0]
+            y = np.array(set_entry[1], dtype=np.float32)
+
+            x = np.array(list(self.vocab_processor.transform([x]))[0], dtype=np.int32)
+
+            if x_batch is None:
+                x_batch = np.empty((batch_size, len(x)), dtype=np.int32)
+            if y_batch is None:
+                y_batch = np.empty((batch_size, len(y)), dtype=np.float32)
+
+            x_batch[index % batch_size] = x
+            y_batch[index % batch_size] = y
+
+            if index % batch_size == batch_size - 1:
+                x_batch, y_batch = shuffle(x_batch, y_batch)
+                yield x_batch, y_batch
+                x_batch = None
+                y_batch = None
+
+        if x_batch is not None and y_batch is not None:
+            x_batch = x_batch[:(index % batch_size) + 1]
+            y_batch = y_batch[:(index % batch_size) + 1]
+
             x_batch, y_batch = shuffle(x_batch, y_batch)
             yield x_batch, y_batch

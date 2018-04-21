@@ -50,12 +50,12 @@ class TextRNNCNN_Keras(TextNN_Keras):
         model.add(Reshape((self.sequence_length, self.settings["embedding_dim"], 1)))
         for i in range(self.settings["convolution_layers"]):
             model.add(Conv2D(self.settings["num_filters"], 4))
+            model.add(Dropout(self.settings["dropout_keep_prob"]))
             model.add(Activation(activation="relu"))
             if self.settings["use_bn"]:
                 model.add(BatchNormalization())
         if self.settings["use_max_pooling"]:
             model.add(MaxPooling2D())
-        model.add(Dropout(self.settings["dropout_keep_prob"]))
         model.add(Flatten())
         model.add(Dense(self.num_classes, activation="softmax"))
 
