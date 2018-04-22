@@ -8,15 +8,15 @@ from sklearn.linear_model import LinearRegression
 from data_processing.emotion_mining.negation_handling import NegationHandler
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
-from neural_networks.nn_implementations.keras_TextCNN import TextCNN_Keras
-from neural_networks.nn_implementations.keras_TextRNN import TextRNN_Keras
+from neural_networks.nn_implementations import keras_TextNNBase
 from neural_networks.util.data_helpers import clean_text, get_training_set_with_emotions
 
 
 class Regressor():
-    def __init__(self, db: DataStorage, model='LinearRegression'):
+    def __init__(self, db: DataStorage, network: keras_TextNNBase, model='LinearRegression'):
         self.model = model
         self.db = db
+        self.network = network
 
         if self.model == 'LinearRegression':
             self.regressor = LinearRegression(fit_intercept=True, normalize=True)
@@ -50,21 +50,8 @@ class Regressor():
 
         # NN prediction
         print('NN prediction')
-        rnn_out = TextRNN_Keras.predict(x_train)
-        rnn_out_dev = TextRNN_Keras.predict(x_dev)
-
-        cnn_out = TextCNN_Keras.predict(x_train)
-        cnn_out_dev = TextCNN_Keras.predict(x_dev)
-
-        out = []
-        for i in range(len(x_train)):
-            pred = [np.mean([rnn_out[i][ii], cnn_out[i][ii]]) for ii in range(5)]
-            out.append(pred)
-
-        out_dev = []
-        for i in range(len(x_dev)):
-            pred = [np.mean([rnn_out_dev[i][ii], cnn_out_dev[i][ii]]) for ii in range(5)]
-            out_dev.append(pred)
+        rnn_out = self.network.predict(x_train)
+        rnn_out_dev = self.network.predict(x_dev)
 
         output = [np.hstack((rnn_out[i], emotions_train[i])) for i in range(len(x_train))]
         output_dev = [np.hstack((rnn_out_dev[i], emotions_dev[i])) for i in range(len(x_dev))]
@@ -86,14 +73,7 @@ class Regressor():
     def predict(self, content: list) -> list:
         self.regressor = pickle.load(open(self.model_path, 'rb'))
 
-        rnn_out = TextRNN_Keras.predict(content)
-
-        # cnn_out = TextCNN.predict(content)
-
-        # out = []
-        # for i in range(len(content)):
-        #     pred = [np.mean([rnn_out[i][ii], cnn_out[i][ii]]) for ii in range(5)]
-        #     out.append(pred)
+        rnn_out = self.network.predict(content)
 
         nh = NegationHandler(self.db)
         nh_out = []
