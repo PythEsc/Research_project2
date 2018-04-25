@@ -5,9 +5,9 @@ from collections import OrderedDict
 DEFAULT_DICT = OrderedDict()
 
 DEFAULT_DICT["checkpoint_path"] = "../results"  # Percentage of the training data to use for validation
-DEFAULT_DICT["dev_sample_percentage"] = .1  # Percentage of the training data to use for validation
-DEFAULT_DICT["positive_data_file"] = "./data/rt-polaritydata/rt-polarity.pos"  # Data source for the positive data.
-DEFAULT_DICT["negative_data_file"] = "./data/rt-polaritydata/rt-polarity.neg"  # Data source for the negative data.
+# DEFAULT_DICT["dev_sample_percentage"] = .1  # Percentage of the training data to use for validation
+# DEFAULT_DICT["positive_data_file"] = "./data/rt-polaritydata/rt-polarity.pos"  # Data source for the positive data.
+# DEFAULT_DICT["negative_data_file"] = "./data/rt-polaritydata/rt-polarity.neg"  # Data source for the negative data.
 
 # Model Hyperparameters
 DEFAULT_DICT["embedding_dim"] = 50  # Dimensionality of character embedding (default: 128)

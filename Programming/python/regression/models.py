@@ -6,13 +6,14 @@ from random import shuffle
 import numpy as np
 from sklearn import metrics
 from sklearn.linear_model import LinearRegression
+from sklearn.utils import shuffle
 
 from data_processing.emotion_mining.negation_handling import NegationHandler
 from importer.database.database_access import DataStorage
 from importer.database.mongodb import MongodbStorage
 from neural_networks.nn_implementations import keras_TextNNBase
 from neural_networks.nn_implementations.keras_TextCNN import TextCNN_Keras
-from neural_networks.util.configuration_loader import DEFAULT_DICT
+from neural_networks.util import configuration_loader
 from neural_networks.util.data_helpers import training_set_with_emotions_iter, validation_set_with_emotions_iter
 
 
@@ -29,7 +30,6 @@ class Regressor():
             raise ValueError('Unknown Model!')
 
         self.package_directory = os.path.dirname(os.path.abspath(__file__))
-        self.model_path = os.path.join(self.package_directory, 'model.sav')
 
     def fit(self):
         # Generate batches
@@ -40,9 +40,13 @@ class Regressor():
             y_train = train_tuple[1]
             emotes_train = train_tuple[2]
 
+            del train_tuple
+
             x_dev = valid_tuple[0]
             y_dev = valid_tuple[1]
             emotes_dev = valid_tuple[2]
+
+            del valid_tuple
 
             nn_out_train = self.network.predict(x=x_train)
             nn_out_dev = self.network.predict(x=x_dev)
@@ -50,7 +54,6 @@ class Regressor():
             output = [np.hstack((nn_out_train[i], emotes_train[i])) for i in range(len(x_train))]
             output_dev = [np.hstack((nn_out_dev[i], emotes_dev[i])) for i in range(len(x_dev))]
 
-            print('regression')
             self.regressor.fit(X=output, y=y_train)
 
             y_pred_n = self.regressor.predict(output_dev)
@@ -61,10 +64,10 @@ class Regressor():
             mse = metrics.mean_squared_error(y_dev, y_pred)
             print('MSE: {}'.format(mse))
 
-        pickle.dump(self.regressor, open(self.model_path, 'wb'))
+        pickle.dump(self.regressor, open(os.path.join(self.settings["checkpoint_path"], "regressor.sav"), 'wb'))
 
     def predict(self, content: list) -> list:
-        self.regressor = pickle.load(open(self.model_path, 'rb'))
+        self.regressor = pickle.load(open(os.path.join(self.settings["checkpoint_path"], "regressor.sav"), 'rb'))
 
         rnn_out = self.network.predict(content)
 
@@ -172,12 +175,14 @@ class Regressor():
 
 if __name__ == '__main__':
     db = MongodbStorage()
-    settings = DEFAULT_DICT
+    path = "../../results/CNN/non_augmented_1/"
+    settings = configuration_loader.load_config(path + "learning_rate0.001_numlayer1_dropout0.3.json")
+    settings["checkpoint_path"] = path + "checkpoints/"
 
     network = TextCNN_Keras(settings=settings)
     network.load_checkpoint()
 
-    reg = Regressor(db=db, network=network, settings=DEFAULT_DICT)
+    reg = Regressor(db=db, network=network, settings=settings)
     reg.fit()
 
     content = [
