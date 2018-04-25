@@ -126,8 +126,7 @@ class TextNN_Keras(ABC):
         for batch_x, batch_y in self.validation_batch_iterator(db=db, batch_size=5000):
             predicted = self.predict(x=batch_x)
 
-            precision_value, recall_value, f1_value, mse_value = NNMetric.evaluate(num_classes=batch_y.shape[1],
-                                                                                   val_predict=predicted,
+            precision_value, recall_value, f1_value, mse_value = NNMetric.evaluate(val_predict=predicted,
                                                                                    val_targ=batch_y)
 
             mse.append(mse_value)

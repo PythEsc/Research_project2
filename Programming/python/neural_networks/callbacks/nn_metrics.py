@@ -28,7 +28,7 @@ class NNMetric(Callback):
         val_predict = np.asarray(self.model.predict(self.validation_data[0]))
         val_targ = np.asarray(self.validation_data[1])
 
-        precision, recall, f1, mse = NNMetric.evaluate(num_classes, val_predict, val_targ)
+        precision, recall, f1, mse = NNMetric.evaluate(val_predict, val_targ)
 
         self.precision.append(precision)
         self.recall.append(recall)
@@ -40,16 +40,17 @@ class NNMetric(Callback):
         self.cur_mse.append(mse)
 
     @staticmethod
-    def evaluate(num_classes, val_predict, val_targ):
+    def evaluate(val_predict, val_targ):
+        num_classes = len(val_targ[0])
         threshold = 1 / num_classes
 
-        val_predict_classes = np.empty(shape=(len(val_predict), num_classes), dtype=bool)
+        val_predict_classes = np.empty(shape=(len(val_predict), num_classes), dtype=np.bool)
         for index, array in enumerate(val_predict):
-            val_predict_classes[index] = np.array([True if value > threshold else False for value in array], dtype=bool)
+            val_predict_classes[index] = np.array([True if value > threshold else False for value in array], dtype=np.bool)
 
-        val_targ_classes = np.empty(shape=(len(val_targ), num_classes), dtype=bool)
+        val_targ_classes = np.empty(shape=(len(val_targ), num_classes), dtype=np.bool)
         for index, array in enumerate(val_targ):
-            val_targ_classes[index] = np.array([True if value > threshold else False for value in array], dtype=bool)
+            val_targ_classes[index] = np.array([True if value > threshold else False for value in array], dtype=np.bool)
 
         precision = precision_score(y_true=val_targ_classes, y_pred=val_predict_classes, average='micro')
         recall = recall_score(y_true=val_targ_classes, y_pred=val_predict_classes, average='micro')
