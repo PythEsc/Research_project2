@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from collections import Iterable
 
 import numpy as np
-import sklearn
 from keras import Input, losses, Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from keras.optimizers import Adam
@@ -127,10 +126,9 @@ class TextNN_Keras(ABC):
         for batch_x, batch_y in self.validation_batch_iterator(db=db, batch_size=5000):
             predicted = self.predict(x=batch_x)
 
-            mse_value = sklearn.metrics.mean_squared_error(batch_y, predicted)
-            precision_value, recall_value, f1_value = NNMetric.evaluate(num_classes=batch_y.shape[1],
-                                                                        val_predict=predicted,
-                                                                        val_targ=batch_y)
+            precision_value, recall_value, f1_value, mse_value = NNMetric.evaluate(num_classes=batch_y.shape[1],
+                                                                                   val_predict=predicted,
+                                                                                   val_targ=batch_y)
 
             mse.append(mse_value)
             precision.append(precision_value)
